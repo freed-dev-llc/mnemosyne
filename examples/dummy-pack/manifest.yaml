@@ -1,0 +1,3 @@
+# Throwaway proof-of-packaging fixture for issue #61 Candidate Step B: not a real pack.
+# No models/chunking/persona/top_k: this pack is never ingested or asked.
+name: dummy-installed-pack

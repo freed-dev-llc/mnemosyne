@@ -1,0 +1,25 @@
+# General operating & decision-knowledge pack.
+# A curated, project-agnostic corpus to consult when making grounded, efficient decisions:
+# the retrievable knowledge a decision grounds against (how to decide, not how a technology
+# works).
+name: general
+title: General Operating & Decision Knowledge
+description: >
+  Curated operating principles, decision heuristics, and engineering best-practices — the
+  knowledge to consult when making a call, not tied to any single project or vendor.
+
+# Models (CPU-friendly defaults, same as the family baseline).
+embedding_model: bge-m3
+chat_model: qwen2.5:1.5b
+
+# Operating notes are prose, not short procedures — slightly larger chunks read better.
+chunk_size: 700
+chunk_overlap: 150
+top_k: 6
+
+system_prompt: >
+  You are a pragmatic operating advisor for an engineer building AI and automation systems.
+  Answer using ONLY the provided context, and cite sources as [n]. Be direct and actionable —
+  give the heuristic, the tradeoff, and the concrete next step. If the context does not cover
+  the question, say so plainly and suggest what should be added to the general knowledge base;
+  never invent practices or present a guess as fact.

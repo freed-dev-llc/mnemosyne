@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mnemosyne-pack-proof-dummy"
+version = "0.0.1"
+description = "Throwaway proof-of-packaging fixture for issue #61 Candidate Step B: not a real knowledge pack."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Jonathan Freed" }]
+
+# No `mnemosyne-rag` dependency declared: this package is only ever installed into an
+# environment that already has it, same assumption examples/ask_ubiquiti.py makes about
+# Ollama being available.
+
+[project.entry-points."mnemosyne.knowledge_packs"]
+dummy-installed-pack = "mnemosyne_pack_proof_dummy:DummyProofPack"
+
+# A lone module, not a package directory (no __init__.py): setuptools' automatic package
+# discovery only finds package directories, so it must be told explicitly.
+[tool.setuptools]
+py-modules = ["mnemosyne_pack_proof_dummy"]

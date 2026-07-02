@@ -1,0 +1,22 @@
+# Mnemosyne development environment (CPU).
+#
+# Create/update with mamba (https://github.com/mamba-org/mamba) — or conda:
+#   mamba env create -f environment.yml
+#   mamba activate mnemosyne
+#
+# Why a conda/mamba env instead of a bare venv? FAISS ships cleanly through conda-forge for
+# both CPU and GPU, so the same workflow swaps to GPU by switching this one file for
+# environment-gpu.yml (see ADR-0004). The langchain stack + the package itself install via
+# pip inside the env, mirroring the rag_ollama tutorial this project is based on.
+name: mnemosyne
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - faiss-cpu>=1.8
+  # Force the openblas BLAS variant: the default cpu_mkl faiss build links libmkl_intel_lp64.so.2,
+  # which oneMKL 2026 no longer ships -> `import faiss` dies. openblas is self-contained.
+  - libblas=*=*openblas
+  - pip:
+      - -e ".[dev]"

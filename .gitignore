@@ -1,0 +1,52 @@
+# --- Mnemosyne ---
+# Built FAISS indices, fetched corpora, and any third-party docs live here.
+# Keep the directory, ignore its contents (rebuilt by `mnemosyne ingest`).
+/knowledge/*
+!/knowledge/.gitkeep
+
+# Local coding-agent workflow: kept on disk for local use, never part of the repo.
+/.claude/
+/CLAUDE.md
+/AGENTS.md
+/DOCTRINE.md
+/SAGE.md
+/NOVA.md
+/VERA.md
+/.mcp.json
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.installed.cfg
+*.egg
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Editor / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

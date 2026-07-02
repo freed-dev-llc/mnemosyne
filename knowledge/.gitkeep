@@ -1,0 +1,2 @@
+# Built FAISS indices and corpora land here (gitignored). `mnemosyne ingest <pack>`
+# writes knowledge/<pack>/{index.faiss,index.pkl,meta.json}.

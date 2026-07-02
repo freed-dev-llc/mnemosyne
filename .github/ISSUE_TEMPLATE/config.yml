@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Mnemosyne docs
+    url: https://github.com/freed-dev-llc/mnemosyne/tree/main/docs
+    about: RAG-101, architecture, and knowledge-pack guides.
+  - name: Argus (the network source-of-truth this brain serves)
+    url: https://github.com/freed-dev-llc/argus
+    about: The vendor-discovery counterpart to Mnemosyne's knowledge packs.

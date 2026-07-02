@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mnemosyne-rag"
+version = "0.3.1"
+description = "A local, teaching-first RAG pipeline (Ollama + LangChain + FAISS) that turns any model into an instant expert."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Jonathan Freed" }]
+keywords = ["rag", "ollama", "langchain", "faiss", "retrieval", "embeddings", "local-llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "langchain-core>=1,<2",
+    "langchain-community>=0.4,<0.5",
+    "langchain-ollama>=1,<2",
+    "langchain-openai>=1,<2",
+    "langchain-text-splitters>=1,<2",
+    "pypdf>=4.2",
+    "pydantic-settings>=2.4",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.7",
+    "mcp>=1.28.0",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+]
+
+[project.optional-dependencies]
+# FAISS is provided by the conda/mamba env (faiss-cpu or faiss-gpu — see environment*.yml),
+# so it is NOT a core dependency. For a pip-only install without conda, add the `cpu` extra
+# to pull faiss-cpu from PyPI: `pip install -e ".[dev,cpu]"`.
+cpu = ["faiss-cpu>=1.8"]
+dev = ["ruff>=0.6", "pytest>=8.2", "mypy>=1.11", "types-PyYAML>=6.0", "httpx>=0.27"]
+
+[project.scripts]
+mnemosyne = "mnemosyne.cli:main"
+mnemosyne-mcp = "mnemosyne.mcp_server:main"
+mnemosyne-http = "mnemosyne.http_server:main"
+
+[project.urls]
+Homepage = "https://github.com/freed-dev-llc/mnemosyne"
+Repository = "https://github.com/freed-dev-llc/mnemosyne"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.yml", "sources/*.yaml", "sources/*.md", "sources/*.txt", "eval/*.yaml", "static/*.svg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

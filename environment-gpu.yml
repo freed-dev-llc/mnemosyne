@@ -1,0 +1,22 @@
+# Mnemosyne development environment (GPU / CUDA).
+#
+# Same as environment.yml but with GPU FAISS. This is the payoff of using a conda/mamba env:
+# faiss-gpu is only practically installable via conda, not pip (see ADR-0004). Ollama uses
+# the GPU automatically when present; the rest of the code is unchanged.
+#
+#   mamba env create -f environment-gpu.yml
+#   mamba activate mnemosyne-gpu
+#
+# NOTE: pin faiss-gpu to a build compatible with your CUDA. If resolution fails, consult
+# https://github.com/facebookresearch/faiss/blob/main/INSTALL.md for the current command.
+name: mnemosyne-gpu
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pip
+  - faiss-gpu=1.14.3
+  - pip:
+      - -e ".[dev]"

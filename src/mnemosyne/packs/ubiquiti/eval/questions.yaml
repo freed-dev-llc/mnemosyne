@@ -1,0 +1,135 @@
+# Labelled retrieval question set for the Ubiquiti / UniFi pack.
+#
+# Ground truth = expected substrings (see ADR-0006), each drawn verbatim from a local source
+# file in sources/ (the seed note plus the unifi-* primers). A question "hits" iff EVERY string
+# in `expected` appears (case-insensitive) in the concatenated top-k retrieved chunks. Author
+# questions only from text that is actually in the corpus; if a fact isn't there, it doesn't
+# belong here. The first block covers the seed (core model); the second covers the security,
+# RF, and operations primers (added in ADR-0014, issue #41).
+questions:
+  - id: unifi-model
+    question: How is a UniFi network organized around the controller?
+    expected:
+      - controller
+      - "switches, access points, gateways"
+      - site
+    note: The controller/devices/site split.
+
+  - id: controller-vs-device
+    question: In the UniFi model, who decides configuration and who applies it?
+    expected:
+      - "the controller decides, the device enforces"
+
+  - id: adoption-lifecycle
+    question: What stages does a device move through during adoption?
+    expected:
+      - Pending Adoption
+      - Adopting
+      - Provisioning
+      - Connected
+
+  - id: adoption-prerequisites
+    question: What does a device need in order to be adopted by a controller?
+    expected:
+      - Layer 3
+      - reachability
+      - inform URL
+
+  - id: adoption-loop
+    question: What is an adoption loop and what commonly causes it?
+    expected:
+      - adoption loop
+      - factory reset
+
+  - id: set-inform
+    question: How do you point a UniFi device at its controller manually over SSH?
+    expected:
+      - "set-inform http://<host>:8080/inform"
+
+  - id: port-profiles
+    question: What does a UniFi port profile bundle together?
+    expected:
+      - port profile
+      - native
+      - tagged networks
+
+  - id: trunk-vs-access
+    question: What distinguishes a trunk port from an access port on a UniFi switch?
+    expected:
+      - untagged network
+      - tagged VLANs
+      - trunk
+
+  - id: poe-cycle
+    question: How can you power-cycle a stuck access point from a UniFi switch?
+    expected:
+      - PoE
+      - power-cycling a stuck AP
+
+  - id: wlan-vlan
+    question: How is guest vs IoT vs main separation expressed in UniFi wireless?
+    expected:
+      - WLAN
+      - VLAN-backed networks
+
+  # --- Questions over the unifi-* primers (security, RF, operations; ADR-0014, issue #41) ---
+
+  - id: vlan-segmentation
+    question: Why segment a UniFi network into VLANs?
+    expected:
+      - blast radius
+      - trust levels apart
+    note: From the network-security primer.
+
+  - id: firewall-default-deny
+    question: What firewall posture should a UniFi gateway start from?
+    expected:
+      - default-deny
+      - block traffic between segments
+
+  - id: wpa3-pmf
+    question: What does WPA3 add over WPA2, and what is PMF?
+    expected:
+      - Simultaneous Authentication of Equals
+      - forward secrecy
+      - Protected Management Frames
+
+  - id: channel-2-4ghz
+    question: Which 2.4 GHz channels and channel width should a UniFi network use?
+    expected:
+      - "non-overlapping channels: 1, 6, and 11"
+      - 20 MHz
+
+  - id: roaming-amendments
+    question: Which 802.11 amendments improve roaming between UniFi access points?
+    expected:
+      - 802.11r
+      - 802.11k
+      - 802.11v
+
+  - id: minimum-rssi
+    question: What does the minimum RSSI setting do, and what values are aggressive vs conservative?
+    expected:
+      - Minimum RSSI
+      - "-75 dBm is aggressive"
+      - "-85 dBm conservative"
+
+  - id: stuck-adopting
+    question: How do you recover a UniFi device stuck in the Adopting state?
+    expected:
+      - Forget the device
+      - port 8080
+      - set-inform
+
+  - id: udm-se-firmware
+    question: Why must UDM SE and UDM Pro firmware be upgraded over SSH instead of the controller API?
+    expected:
+      - UDM SE
+      - cannot upgrade them
+      - ubnt-systool fwupdate
+
+  - id: firmware-backup
+    question: What should you do before upgrading UniFi firmware?
+    expected:
+      - controller backup
+      - read the release notes

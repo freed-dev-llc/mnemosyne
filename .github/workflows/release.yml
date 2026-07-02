@@ -1,0 +1,57 @@
+name: Release
+
+# Build the sdist + wheel for a pushed version tag and open a draft GitHub release with them
+# attached.
+#
+# Flow: push the signed `vX.Y.Z` tag -> this builds the artifacts and creates a DRAFT release
+# (via the gh CLI) with GitHub's auto-generated notes; the maintainer curates the notes and
+# publishes. Draft means nothing is public until that publish. `workflow_dispatch` re-runs the
+# build for an existing tag (e.g. after a failed run); if the release already exists it refreshes
+# the assets instead of recreating it.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag to build and attach artifacts to (e.g. v0.3.0)"
+        required: true
+
+permissions:
+  contents: write # required to create the release and upload assets
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    # On a tag push, github.ref_name is the tag; on workflow_dispatch it is a branch, so fall
+    # back to the `tag` input. Used for both the checkout ref and the release's tag_name.
+    env:
+      TAG: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.ref_type == 'tag' && github.ref_name || github.event.inputs.tag }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      # Pure-Python build: only setuptools + wheel are needed (FAISS is a runtime conda/pip
+      # extra, never a build dependency), so this needs no mamba env, unlike the CI `build` job.
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          twine check dist/*
+      # New tag -> create a DRAFT release with auto-generated notes + artifacts. On a
+      # workflow_dispatch re-run where the release already exists, refresh the assets instead and
+      # leave any curated notes untouched. Uses the runner's pre-installed gh CLI, no third-party
+      # action.
+      - name: Draft release with artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.whl dist/*.tar.gz --clobber
+          else
+            gh release create "$TAG" --draft --generate-notes dist/*.whl dist/*.tar.gz
+          fi

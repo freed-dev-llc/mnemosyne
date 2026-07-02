@@ -1,0 +1,29 @@
+# Ubiquiti / UniFi knowledge pack — the in-tree worked example.
+# Everything here is declarative; the pipeline reads it to build and query the expert.
+name: ubiquiti
+title: Ubiquiti / UniFi Networking Expert
+description: >
+  An expert on Ubiquiti UniFi networking — switching, routing, wireless, device
+  adoption, and controller operations. The knowledge counterpart to the UniFi
+  vendor pack that Argus uses for discovery.
+
+# Models — override the global defaults for this pack.
+# bge-m3 embeddings + tiny Qwen chat keep this CPU-friendly (the rag_ollama defaults).
+embedding_model: bge-m3
+chat_model: qwen2.5:1.5b
+
+# Chunking — UniFi help content is short and procedural, so small chunks with
+# generous overlap keep each step self-contained and citable.
+chunk_size: 500
+chunk_overlap: 150
+
+# Retrieval
+top_k: 5
+
+# The expert's persona — becomes the system prompt for every answer.
+system_prompt: >
+  You are a Ubiquiti UniFi networking expert helping an engineer operate a home or lab
+  network. Answer using ONLY the provided context. Cite the sources you use inline as [n].
+  Be concrete and procedural — give exact menu paths, settings, and CLI where the context
+  supports it. If the context does not contain the answer, say so plainly and suggest what
+  documentation would be needed; never invent configuration steps or firmware behavior.

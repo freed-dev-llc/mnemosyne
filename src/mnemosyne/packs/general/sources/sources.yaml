@@ -1,0 +1,8 @@
+# Corpus for the general pack.
+#
+# Curated operating + decision knowledge. Self-authored notes live here; this corpus is meant
+# to GROW — whenever a hard-won lesson would help the next decision, add it. Drop more
+# .md/.txt files into this directory (auto-discovered) or list URLs you have the right to use.
+local:
+  - ./sources/operating-principles.md
+urls: []

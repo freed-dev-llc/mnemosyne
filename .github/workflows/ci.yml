@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Job `build` is the required status check on main. It provisions the project with mamba
+# (micromamba) from environment.yml — the same env developers use — so FAISS comes from
+# conda-forge, exactly as in local/dev.
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+          init-shell: bash
+      - name: Install project (refresh pyproject deps even on a cached env)
+        # The env cache keys on environment.yml, so dependency changes in pyproject.toml
+        # aren't picked up on a cache hit. Re-install to keep deps current.
+        run: pip install -e ".[dev]"
+      - name: Ruff (lint)
+        run: ruff check src tests
+      - name: Ruff (format)
+        run: ruff format --check src tests
+      - name: Mypy
+        run: mypy src
+        continue-on-error: true
+      - name: Pytest
+        run: pytest -v
+
+  # Job `eval-gate` is a NON-BLOCKING, non-required check (ADR-0008). It runs the real retrieval
+  # path — Ollama + the bge-m3 embedding model — to score the default pack's retrieval hit-rate
+  # against the committed regression floor (`DEFAULT_MIN_HIT_RATE`). It is non-blocking *by
+  # construction*: the gate step is `continue-on-error`, so a below-floor result (or a flaky model
+  # pull) never reds the run, and the signal is delivered loudly via a step summary + a GitHub
+  # `::error::` annotation instead. It runs in parallel (no `needs:`) and is never made a required
+  # check — branch protection requires only `build`, which stays fast, offline, and untouched. It
+  # pulls bge-m3 ONLY: the gate scores retrieval, not generation, so it never pulls qwen2.5:1.5b.
+  eval-gate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: mamba-org/setup-micromamba@v3 # same env as build → FAISS + the CLI
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+          init-shell: bash
+      - name: Install project
+        run: pip install -e ".[dev]"
+      - name: Cache Ollama models
+        uses: actions/cache@v6
+        with:
+          path: ~/.ollama/models
+          key: ollama-bge-m3 # retrieval-only → bge-m3 ONLY, NOT qwen
+      - name: Install & start Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          for _ in $(seq 1 30); do curl -sf http://localhost:11434/api/version && break; sleep 1; done
+      - name: Pull embedding model
+        run: ollama pull bge-m3
+      - name: Ingest + retrieval hit-rate gate (non-blocking)
+        continue-on-error: true # never blocks merge / never reds the run
+        run: |
+          set +e
+          mnemosyne ingest ubiquiti --local-only
+          mnemosyne eval ubiquiti --gate | tee eval.out
+          code=${PIPESTATUS[0]}
+          { echo "### Retrieval hit-rate gate"; echo '```'; cat eval.out; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if   [ "$code" -eq 2 ]; then echo "::error title=Retrieval gate::hit-rate below floor (exit 2)";
+          elif [ "$code" -ne 0 ]; then echo "::warning title=Retrieval gate::eval did not run cleanly (exit $code)"; fi
+          exit $code
+
+  # Job `dummy-pack-install` is a NON-BLOCKING, non-required check (issue #61 Candidate Step
+  # B). It pip-installs `examples/dummy-pack`, a throwaway package with its own
+  # `mnemosyne.knowledge_packs` entry point, and proves `discover_packs()` sees it through
+  # the real, unpatched `importlib.metadata.entry_points()` call, not a monkeypatched test.
+  # It uses plain `actions/setup-python`, not the mamba/`environment.yml` env `build` and
+  # `eval-gate` need: `discover_packs()`'s import chain (registry.py -> base.py ->
+  # loaders.py) never imports FAISS, so this job stays lighter than both and needs no conda
+  # setup. It never calls the `mnemosyne` CLI (that would pull in `index.py`'s FAISS import).
+  # Non-blocking by construction: the proof step is `continue-on-error`, so a failure never
+  # reds the run; it is reported via a step summary + a `::error::` annotation instead. It
+  # runs in parallel (no `needs:`) and is never made a required check.
+  dummy-pack-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install project (core deps only)
+        run: pip install -e .
+      - name: Install build tools for the no-build-isolation install below
+        # `actions/setup-python` gives a bare pip with no setuptools/wheel (Python 3.12+
+        # ensurepip no longer bundles setuptools). `pip install -e .` above builds in its
+        # own isolated, ephemeral build env and doesn't leave setuptools installed here, so
+        # the next step's `--no-build-isolation` needs this explicit install first.
+        run: pip install setuptools wheel
+      - name: Install the throwaway dummy pack
+        run: pip install --no-build-isolation -e examples/dummy-pack
+      - name: Prove entry-point discovery (non-blocking)
+        continue-on-error: true # never blocks merge / never reds the run
+        run: |
+          set +e
+          out=$(python -c "
+          from mnemosyne.packs.registry import discover_packs
+          packs = sorted(discover_packs())
+          print(packs)
+          assert 'dummy-installed-pack' in packs
+          " 2>&1)
+          code=$?
+          { echo "### Dummy pack entry-point discovery"; echo '```'; echo "$out"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" -ne 0 ]; then echo "::error title=Dummy pack discovery::discover_packs() did not see the installed entry point (exit $code)"; fi
+          exit $code

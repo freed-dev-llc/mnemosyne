@@ -1,0 +1,27 @@
+[Unit]
+Description=Mnemosyne HTTP (RAG knowledge brain) — GET /health,/packs · POST /ask,/search
+Documentation=https://github.com/freed-dev-llc/mnemosyne/blob/main/deploy/README.md
+After=network-online.target ollama.service
+Wants=network-online.target ollama.service
+
+[Service]
+Type=simple
+# Adjust User/Group and the paths below to your install. WorkingDirectory must be the
+# directory that holds the built knowledge/ tree — `mnemosyne ingest` writes each pack's
+# FAISS index under knowledge/<pack>/, and that path is resolved relative to the CWD.
+User=mnemosyne
+Group=mnemosyne
+WorkingDirectory=/opt/mnemosyne
+# Bind 0.0.0.0 so the service is reachable on an overlay/mesh interface (e.g. NetBird) by a
+# remote consumer such as the Argus dashboard, not just on localhost. There is NO built-in
+# auth — restrict access with a firewall or mesh ACLs and keep it off the public internet.
+Environment=MNEMOSYNE_HTTP_HOST=0.0.0.0
+Environment=MNEMOSYNE_HTTP_PORT=8088
+# Ollama provides embeddings + chat; point here if it is not on localhost.
+Environment=MNEMOSYNE_OLLAMA_HOST=http://localhost:11434
+ExecStart=/opt/mnemosyne/.venv/bin/mnemosyne-http
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
