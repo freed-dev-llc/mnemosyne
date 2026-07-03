@@ -34,7 +34,17 @@ jobs:
         run: mypy src
         continue-on-error: true
       - name: Pytest
-        run: pytest -v
+        run: pytest -v --cov=mnemosyne --cov-report=xml --cov-report=term-missing
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          # Coverage upload is best-effort: a Codecov outage or rate-limit must never red the
+          # required `build` check, which gates on lint + tests. Codecov reports the delta on
+          # the PR itself (informational only, see codecov.yml).
+          fail_ci_if_error: false
 
   # Job `eval-gate` is a NON-BLOCKING, non-required check (ADR-0008). It runs the real retrieval
   # path — Ollama + the bge-m3 embedding model — to score the default pack's retrieval hit-rate

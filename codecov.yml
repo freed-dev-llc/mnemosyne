@@ -1,0 +1,22 @@
+# Codecov configuration. Branch protection on `main` requires only the `build` CI check
+# (ADR-0008), so Codecov's own coverage checks are informational: they annotate the PR with
+# the coverage delta but never post a failing status that could block a merge.
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
+
+# One PR comment, updated in place, even when coverage is unchanged.
+comment:
+  layout: "reach, diff, flags, files"
+  require_changes: false
+
+# `unittests` is the offline pytest suite from the `build` job (the only uploader today).
+flags:
+  unittests:
+    paths:
+      - src/mnemosyne

@@ -17,6 +17,10 @@ All notable changes to Mnemosyne are documented here. The format is based on
   entry-point pack loader, exercising the unpatched `importlib.metadata.entry_points()`
   discovery path end to end. A non-required `dummy-pack-install` CI job installs it and asserts
   it is discovered.
+- Test-coverage reporting to Codecov: the `build` job measures `src/mnemosyne` under pytest and
+  uploads `coverage.xml` via `codecov-action@v5`. The upload is best-effort (`fail_ci_if_error:
+  false`) and Codecov's PR statuses are informational (`codecov.yml`), so `build` stays the only
+  required gate. A coverage badge is in the README.
 
 ### Changed
 

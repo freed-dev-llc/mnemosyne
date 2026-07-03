@@ -3,6 +3,7 @@
 ![Mnemosyne Recall](docs/assets/mnemosyne/logos/mnemosyne_logo_horizontal.svg)
 
 [![CI](https://github.com/freed-dev-llc/mnemosyne/actions/workflows/ci.yml/badge.svg)](https://github.com/freed-dev-llc/mnemosyne/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/freed-dev-llc/mnemosyne/graph/badge.svg)](https://codecov.io/gh/freed-dev-llc/mnemosyne)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Linting: ruff](https://img.shields.io/badge/linting-ruff-261230.svg)](https://github.com/astral-sh/ruff)
