@@ -96,10 +96,53 @@ def test_score_of_empty_question_set_is_zero_not_a_crash() -> None:
     assert report.hit_rate == 0.0
 
 
+def test_score_or_group_hits_on_any_alternative() -> None:
+    # The item is a list of alternatives; retrieving *either* wording is a hit.
+    questions = [
+        EvalQuestion(id="q", question="?", expected=[["untagged network", "native (untagged)"]])
+    ]
+    a = score(questions, _retrieve_from("configured as the native (untagged) VLAN"), k=3)
+    b = score(questions, _retrieve_from("this is the untagged network here"), k=3)
+    assert a.results[0].hit is True
+    assert b.results[0].hit is True
+
+
+def test_score_or_group_misses_only_when_no_alternative_present() -> None:
+    questions = [
+        EvalQuestion(id="q", question="?", expected=[["untagged network", "native (untagged)"]])
+    ]
+    report = score(questions, _retrieve_from("only tagged VLANs discussed"), k=3)
+    assert report.results[0].hit is False
+    # the whole OR-group is reported as one missing item, alternatives joined
+    assert report.results[0].missing == ["untagged network | native (untagged)"]
+
+
+def test_score_mixes_plain_strings_and_or_groups() -> None:
+    # A plain required substring AND an OR-group must both be satisfied.
+    questions = [
+        EvalQuestion(
+            id="q", question="?", expected=["trunk", ["untagged network", "native (untagged)"]]
+        )
+    ]
+    hit = score(questions, _retrieve_from("a trunk carries the native (untagged) VLAN"), k=3)
+    miss = score(questions, _retrieve_from("a trunk carries tagged VLANs"), k=3)
+    assert hit.results[0].hit is True
+    assert miss.results[0].hit is False
+    assert miss.results[0].missing == ["untagged network | native (untagged)"]
+
+
+def _flatten_expected(question: EvalQuestion) -> list[str]:
+    """Every alternative across a question's expected items (OR-groups flattened)."""
+    out: list[str] = []
+    for item in question.expected:
+        out.extend([item] if isinstance(item, str) else item)
+    return out
+
+
 def test_run_retrieval_eval_uses_injected_retrieve_offline() -> None:
     # A retrieve that surfaces every expected string -> a perfect score, no Ollama needed.
     questions = load_questions("ubiquiti")
-    every_expected = " ".join(s for q in questions for s in q.expected)
+    every_expected = " ".join(s for q in questions for s in _flatten_expected(q))
     report = run_retrieval_eval("ubiquiti", k=5, retrieve=_retrieve_from(every_expected))
     assert report.pack == "ubiquiti"
     assert report.k == 5
@@ -121,7 +164,10 @@ def test_load_questions_reads_the_shipped_ubiquiti_set() -> None:
 def test_every_shipped_ubiquiti_question_has_expected_strings() -> None:
     for q in load_questions("ubiquiti"):
         assert q.expected, f"question '{q.id}' has an empty expected list"
-        assert all(s.strip() for s in q.expected), f"question '{q.id}' has a blank expected"
+        for item in q.expected:
+            alts = [item] if isinstance(item, str) else item
+            assert alts, f"question '{q.id}' has an empty OR-group"
+            assert all(a.strip() for a in alts), f"question '{q.id}' has a blank expected"
 
 
 def test_load_questions_raises_when_the_set_is_absent() -> None:
@@ -531,7 +577,7 @@ def test_index_key_ignores_k_and_chat_model() -> None:
 def test_run_sweep_injected_path_delegates_to_score_sweep() -> None:
     # Injected factories keep the run offline: no temp workspace, no ingest, no Ollama.
     questions = load_questions("ubiquiti")
-    every_expected = " ".join(s for q in questions for s in q.expected)
+    every_expected = " ".join(s for q in questions for s in _flatten_expected(q))
     cfg = SweepConfig(500, 150, 5, "bge-m3", "qwen")
     retrieve_for = _retrieve_for({cfg: (every_expected,)})
 

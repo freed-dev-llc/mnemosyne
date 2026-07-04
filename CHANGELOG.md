@@ -49,6 +49,12 @@ All notable changes to Mnemosyne are documented here. The format is based on
 - Off-topic questions now return "not in the knowledge base" by default rather than a
   best-effort answer over unrelated chunks: the new `score_floor` (default `1.0`) gates
   retrieval on relevance. Set `MNEMOSYNE_SCORE_FLOOR` to `null` to restore the prior behavior.
+- Eval ground truth (ADR-0006) accepts OR-groups: an `expected` item may now be a list of
+  interchangeable alternatives, satisfied when any one appears, alongside plain required
+  substrings (backward compatible). This lets a correct answer count regardless of source
+  wording, e.g. a fetched doc's "Native (untagged) VLAN" satisfies the same item as the seed's
+  "untagged network". Applied to the ubiquiti `trunk-vs-access` question, which the fetched
+  Switch Port VLAN Assignment page answers correctly in different words.
 - README documents the ADR-0009 chat-backend switch (chat can target any OpenAI-compatible
   server; embeddings stay Ollama-only; the `ollama` default is unchanged).
 - Single-source-of-truth dedup refactor (zero behavior change): supported corpus suffixes,

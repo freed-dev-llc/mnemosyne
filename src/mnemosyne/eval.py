@@ -48,11 +48,17 @@ if TYPE_CHECKING:
 
 @dataclass
 class EvalQuestion:
-    """One labelled question; its ``expected`` substrings are the ground truth."""
+    """One labelled question and its ground truth.
+
+    Each ``expected`` item is either a required substring, or a list of interchangeable
+    alternatives (an OR-group) of which any one satisfies the item. The OR-group lets a
+    correct answer count regardless of source wording: a fetched doc that says "Native
+    (untagged) VLAN" satisfies the same item as a seed doc's "untagged network".
+    """
 
     id: str
     question: str
-    expected: list[str]
+    expected: list[str | list[str]]
     note: str | None = None
 
 
@@ -102,6 +108,15 @@ def load_questions(pack: str) -> list[EvalQuestion]:
     ]
 
 
+def _alternatives(item: str | list[str]) -> list[str]:
+    """The acceptable forms of one expected item.
+
+    A plain string is its own single alternative; a list is an OR-group. Normalizing both to
+    a list lets the scorer treat "one required substring" and "any of these" uniformly.
+    """
+    return [item] if isinstance(item, str) else list(item)
+
+
 def score(
     questions: list[EvalQuestion],
     retrieve: Retrieve,
@@ -112,14 +127,19 @@ def score(
     """Score each question against its top-k retrieved chunks (pure, offline-friendly).
 
     ``retrieve`` is injected — ``(question, k) -> list[Document]`` — so the scorer never
-    touches Ollama. A question hits iff every ``expected`` string is found (case-insensitive)
-    in the concatenated ``page_content`` of the retrieved chunks; the missing strings are
-    recorded on a miss.
+    touches Ollama. A question hits iff, for every ``expected`` item, at least one of its
+    alternatives is found (case-insensitive) in the concatenated ``page_content`` of the
+    retrieved chunks; a plain string is a one-alternative item. Each unmatched item is
+    recorded on a miss, its alternatives joined with `` | ``.
     """
     results: list[EvalResult] = []
     for q in questions:
         haystack = "\n".join(doc.page_content for doc in retrieve(q.question, k)).lower()
-        missing = [s for s in q.expected if s.lower() not in haystack]
+        missing: list[str] = []
+        for item in q.expected:
+            alternatives = _alternatives(item)
+            if not any(alt.lower() in haystack for alt in alternatives):
+                missing.append(" | ".join(alternatives))
         results.append(EvalResult(id=q.id, question=q.question, hit=not missing, missing=missing))
     total = len(questions)
     hits = sum(1 for r in results if r.hit)
