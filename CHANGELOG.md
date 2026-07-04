@@ -8,6 +8,12 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- [ADR-0017](docs/architecture/adr/0017-retrieval-quality-known-limitations.md) documenting
+  retrieval quality on the served corpus: the `eval-gate` local-only number (0.95) overstates
+  served ubiquiti recall (~0.84), why (measurement artifact plus real dilution from fetched
+  content), and the deferred work with rationale (a prototyped-but-unshipped reranker, rejected
+  corpus pruning, the `adoption-loop` known miss, and a deferred served-corpus eval). ROADMAP
+  updated to match.
 - Retrieval relevance floor (`score_floor`, default `1.0`): retrieval drops any chunk whose
   embedding distance exceeds the floor, so a query with nothing close enough retrieves nothing
   and `ask` answers "I don't have anything about that in this knowledge base" without an LLM
