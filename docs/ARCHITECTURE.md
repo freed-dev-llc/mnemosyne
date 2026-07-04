@@ -52,9 +52,11 @@ question ─► embeddings (same model) ─► index.load_index.similarity_searc
                               prompts.build_prompt ─► llm.get_chat_model ─► answer + citations
 ```
 
-`mnemosyne ask <pack> "<question>"` loads the saved index, retrieves the top-k chunks,
-builds a grounded prompt from the pack's system persona, and streams an answer back with
-`[n]` citations resolved to source documents.
+`mnemosyne ask <pack> "<question>"` loads the saved index, retrieves the top-k chunks
+(dropping any past the relevance floor, so an off-topic question retrieves nothing and is
+answered "not in the knowledge base" without a generation call), builds a grounded prompt
+from the pack's system persona, and streams an answer back with `[n]` citations resolved to
+source documents.
 
 ## Why these boundaries
 

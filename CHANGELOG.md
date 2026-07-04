@@ -6,6 +6,13 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- Docs caught up to the 0.4.0 retrieval behavior: `.env.example` now lists
+  `MNEMOSYNE_SCORE_FLOOR` and `MNEMOSYNE_FAISS_NORMALIZE`, and the README, `docs/ARCHITECTURE.md`,
+  and `docs/RAG-101.md` note the relevance floor (an off-topic question answers "not in the
+  knowledge base" instead of guessing over unrelated chunks).
+
 ## [0.4.0] - 2026-07-04
 
 ### Added
