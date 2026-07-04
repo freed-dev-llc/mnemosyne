@@ -94,7 +94,10 @@ black box, and to grow into something useful for the family.
 Two paths, one index. **Ingest** is run once per corpus (and re-run when docs change);
 it is the slow, expensive part. **Ask** is cheap and local: embed the question, pull the
 nearest chunks out of FAISS, and let a small Ollama model write the answer grounded in
-exactly those chunks. Nothing leaves the machine.
+exactly those chunks. Nothing leaves the machine. If nothing in the index is close enough
+to the question, Ask answers "not in the knowledge base" rather than reaching for unrelated
+chunks: a relevance floor (`MNEMOSYNE_SCORE_FLOOR`, on by default) keeps off-topic questions
+from getting confident, ungrounded answers.
 
 See [`docs/RAG-101.md`](docs/RAG-101.md) for the *why* behind every box, and
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for which module owns each one.
