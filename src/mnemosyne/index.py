@@ -95,12 +95,17 @@ def _embed_chunks(
     return keep_texts, keep_vectors, keep_metas
 
 
-def build_index(chunks: list[Document], embeddings: Embeddings, path: Path) -> FAISS:
+def build_index(
+    chunks: list[Document], embeddings: Embeddings, path: Path, *, normalize: bool = False
+) -> FAISS:
     """Embed ``chunks`` and persist a FAISS index to ``path``.
 
     A chunk the embedding backend cannot embed (it raises, or returns a NaN/Inf vector) is
     skipped with a warning rather than aborting the build (issue #40); every other chunk is
     indexed. Raises ``ValueError`` only when *no* chunk could be embedded.
+
+    ``normalize=True`` unit-normalizes vectors so L2 ranks identically to cosine; it must be
+    matched by :func:`load_index` at query time, so callers persist it in ``meta.json``.
     """
     texts, vectors, metadatas = _embed_chunks(chunks, embeddings)
     if not texts:
@@ -112,16 +117,23 @@ def build_index(chunks: list[Document], embeddings: Embeddings, path: Path) -> F
         text_embeddings=list(zip(texts, vectors, strict=True)),
         embedding=embeddings,
         metadatas=metadatas,
+        normalize_L2=normalize,
     )
     path.mkdir(parents=True, exist_ok=True)
     store.save_local(str(path))
     return store
 
 
-def load_index(path: Path, embeddings: Embeddings) -> FAISS:
-    """Load a FAISS index previously written by :func:`build_index`."""
+def load_index(path: Path, embeddings: Embeddings, *, normalize: bool = False) -> FAISS:
+    """Load a FAISS index previously written by :func:`build_index`.
+
+    ``normalize`` must match the value the index was built with (recorded in ``meta.json``),
+    so the query vector is normalized the same way the stored vectors were.
+    """
     # The pickle here is one we wrote ourselves at ingest time.
-    return FAISS.load_local(str(path), embeddings, allow_dangerous_deserialization=True)
+    return FAISS.load_local(
+        str(path), embeddings, allow_dangerous_deserialization=True, normalize_L2=normalize
+    )
 
 
 def write_meta(path: Path, meta: dict[str, Any]) -> None:

@@ -8,6 +8,13 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Optional embedding normalization (`faiss_normalize`, default off): unit-normalizes vectors at
+  build and query time so the FAISS L2 metric ranks identically to cosine, pairing the metric to
+  a cosine-trained embedding model. The value is recorded in each index's `meta.json` and must
+  match at build and query time. It is a measured no-op for the default `bge-m3` (Ollama returns
+  unit-norm vectors, so L2 already equals cosine: identical hit-rate on the ubiquiti eval set),
+  kept as opt-in insurance for a future non-normalized embedding model. Set
+  `MNEMOSYNE_FAISS_NORMALIZE=true` and rebuild the index to enable.
 - Release helper `scripts/sync-spark.sh`: updates a remote install to a git ref (default
   `origin/main`, or a tag/branch/sha) and brings the `mnemosyne-http` service up to date in one
   command. It aborts on a dirty tree, hard-resets to the ref, reinstalls the editable package
