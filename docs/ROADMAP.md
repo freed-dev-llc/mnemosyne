@@ -61,7 +61,15 @@ Mnemosyne can *explain*. Knowledge packs expand in lockstep with Argus vendor pa
 - [ ] Ship the UniFi/Ubiquiti vendor as one distribution advertising both `argus.vendor_packs`
       and `mnemosyne.knowledge_packs`, so installing it sets up both deployments
       ([ADR-0015](architecture/adr/0015-paired-vendor-knowledge-packs.md)).
-- [ ] Optional: hybrid retrieval (BM25 + vector), reranking, and per-pack model tuning.
+- [ ] Optional: hybrid retrieval (BM25 + vector), reranking, and per-pack model tuning. A hybrid
+      dense + BM25 reranker was prototyped (it lifts served ubiquiti recall 0.79 -> 0.84) but not
+      shipped, pending a larger held-out question set; see
+      [ADR-0017](architecture/adr/0017-retrieval-quality-known-limitations.md).
+- [ ] Served-corpus eval visibility: `eval-gate` measures the local-only corpus, so it overstates
+      what a running server retrieves (served ubiquiti is ~0.84, not the 0.95 CI reports). A
+      non-gating served eval or a frozen staged snapshot is deferred on determinism grounds
+      (ADR-0016, issue #60); see
+      [ADR-0017](architecture/adr/0017-retrieval-quality-known-limitations.md).
 
 ## Non-goals (for now)
 
