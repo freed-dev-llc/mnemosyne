@@ -1,8 +1,12 @@
 # Labelled retrieval question set for the Ubiquiti / UniFi pack.
 #
 # Ground truth = expected substrings (see ADR-0006), each drawn verbatim from a local source
-# file in sources/ (the seed note plus the unifi-* primers). A question "hits" iff EVERY string
-# in `expected` appears (case-insensitive) in the concatenated top-k retrieved chunks. Author
+# file in sources/ (the seed note plus the unifi-* primers). A question "hits" iff EVERY
+# `expected` item is satisfied (case-insensitive) in the concatenated top-k retrieved chunks.
+# An item is either a single required substring, or a list of interchangeable alternatives (an
+# OR-group) of which any one satisfies it. Use an OR-group when the same fact is worded
+# differently across sources, so a correct answer counts regardless of which source supplies it
+# (e.g. a fetched doc's "Native (untagged) VLAN" for the seed's "untagged network"). Author
 # questions only from text that is actually in the corpus; if a fact isn't there, it doesn't
 # belong here. The first block covers the seed (core model); the second covers the security,
 # RF, and operations primers (added in ADR-0014, issue #41).
@@ -56,7 +60,8 @@ questions:
   - id: trunk-vs-access
     question: What distinguishes a trunk port from an access port on a UniFi switch?
     expected:
-      - untagged network
+      - - untagged network
+        - native (untagged)
       - tagged VLANs
       - trunk
 
