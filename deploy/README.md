@@ -39,6 +39,33 @@ curl -s http://127.0.0.1:8088/health        # {"status":"ok", ...}
 `WorkingDirectory` must be the directory that holds the built `knowledge/` tree — the pack
 index path is resolved relative to it.
 
+## Updating a deployed install
+
+[`scripts/sync-spark.sh`](../scripts/sync-spark.sh) updates a remote install to a git ref
+and brings the `mnemosyne-http` service up to date in one command. Run it locally after
+merging to `main` or tagging a release:
+
+```bash
+scripts/sync-spark.sh              # sync to origin/main, restart the service if needed
+scripts/sync-spark.sh v0.3.2       # sync to a tag, branch, or commit sha
+scripts/sync-spark.sh --no-restart # sync only, leave the service running
+```
+
+On the target host the script:
+
+- aborts if the working tree is dirty, then fetches and hard-resets the repo to the ref;
+- reinstalls the editable package only when `pyproject.toml` changed;
+- restarts `mnemosyne-http` when the code moved, the package was reinstalled, or the
+  running service version lags the installed version;
+- health-checks the service and prints installed vs. running versions.
+
+The restart step matters because the service reports its version from installed package
+metadata: an editable install picks up new code on `git pull`, but the running process
+keeps serving the old version until it is restarted.
+
+Defaults target the Spark box; override with the `SPARK_HOST`, `SPARK_REPO`, `SPARK_ENV`,
+`MNEMOSYNE_SERVICE`, and `MNEMOSYNE_HEALTH_URL` environment variables for another host.
+
 ## Reachability and security
 
 `mnemosyne-http` has **no authentication** and is meant to be called server-to-server on a
