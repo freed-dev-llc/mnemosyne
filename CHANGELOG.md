@@ -8,6 +8,15 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Retrieval relevance floor (`score_floor`, default `1.0`): retrieval drops any chunk whose
+  embedding distance exceeds the floor, so a query with nothing close enough retrieves nothing
+  and `ask` answers "I don't have anything about that in this knowledge base" without an LLM
+  call, instead of feeding the model unrelated context. Measured on the ubiquiti eval set, the
+  `1.0` default keeps full in-domain recall (18/19, unchanged from no floor) while rejecting
+  11/12 deliberately off-topic queries; validated end to end through Argus's `/api/ask` proxy
+  against the production index. Adjacent-domain queries (generic BGP/Kubernetes) fall inside the
+  in-domain distance band and are not rejected. Set `MNEMOSYNE_SCORE_FLOOR` to retune, or unset
+  it to `null` to disable and restore the always-return-top-k behavior.
 - Optional embedding normalization (`faiss_normalize`, default off): unit-normalizes vectors at
   build and query time so the FAISS L2 metric ranks identically to cosine, pairing the metric to
   a cosine-trained embedding model. The value is recorded in each index's `meta.json` and must
@@ -37,6 +46,9 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Changed
 
+- Off-topic questions now return "not in the knowledge base" by default rather than a
+  best-effort answer over unrelated chunks: the new `score_floor` (default `1.0`) gates
+  retrieval on relevance. Set `MNEMOSYNE_SCORE_FLOOR` to `null` to restore the prior behavior.
 - README documents the ADR-0009 chat-backend switch (chat can target any OpenAI-compatible
   server; embeddings stay Ollama-only; the `ollama` default is unchanged).
 - Single-source-of-truth dedup refactor (zero behavior change): supported corpus suffixes,
