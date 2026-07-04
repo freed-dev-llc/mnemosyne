@@ -173,12 +173,22 @@ class RagPipeline:
         )
 
         self.top_k = _first_int(top_k, pack.top_k, self.settings.top_k)
+        self.score_floor = self.settings.score_floor
         model = _first_str(chat_model, pack.chat_model, self.settings.chat_model)
         self.llm = get_chat_model(model, self.settings)
 
     def retrieve(self, question: str, k: int | None = None) -> list[Document]:
-        """Return the top-k chunks most relevant to ``question``."""
-        return self.store.similarity_search(question, k=k or self.top_k)
+        """Return the top-k chunks most relevant to ``question``.
+
+        With ``score_floor`` set, any retrieved chunk whose distance exceeds it is dropped, so
+        an off-topic query (nothing close enough) returns an empty list. Without it, the
+        historical behavior stands: always return the top-k, however far.
+        """
+        k = k or self.top_k
+        if self.score_floor is None:
+            return self.store.similarity_search(question, k=k)
+        scored = self.store.similarity_search_with_score(question, k=k)
+        return [doc for doc, distance in scored if distance <= self.score_floor]
 
     def ask(self, question: str, k: int | None = None, chat_history: str = "") -> RagAnswer:
         """Retrieve relevant context and generate a grounded, cited answer.
@@ -187,6 +197,15 @@ class RagPipeline:
         ``chat`` CLI accumulates and threads it. Single ``ask`` calls leave it empty.
         """
         docs = self.retrieve(question, k)
+        if not docs:
+            # The floor rejected every chunk: nothing relevant is indexed for this question.
+            # Answer from that fact directly rather than invoking the model on empty context,
+            # which guarantees no fabrication and saves a generation call.
+            return RagAnswer(
+                question=question,
+                text="I don't have anything about that in this knowledge base.",
+                sources=[],
+            )
         context = format_context(docs)
         messages = build_messages(
             self.pack.system_prompt or DEFAULT_SYSTEM_PROMPT, context, question, chat_history

@@ -70,6 +70,14 @@ class Settings(BaseSettings):
     # query time, so an index records the value it was built with in meta.json.
     faiss_normalize: bool = False
 
+    # Optional relevance floor: the maximum embedding distance (lower = more similar) a chunk
+    # may have to still count as relevant. Retrieval drops any retrieved chunk beyond it, so a
+    # query with no close-enough chunk returns nothing and `ask` answers "not in the knowledge
+    # base" instead of feeding the model unrelated context. Units are the index's distance
+    # metric (L2 over unit-norm bge-m3 vectors, range [0, 2]); tune against the eval set. None
+    # disables the floor, preserving the always-return-top-k behavior.
+    score_floor: float | None = None
+
     # HTTP server (mnemosyne-http) bind address — for web UIs / services (e.g. an Argus
     # "ask the brain" box) that can't speak MCP.
     http_host: str = "127.0.0.1"
