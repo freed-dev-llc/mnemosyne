@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     chunk_overlap: int = 150
     top_k: int = 5
 
+    # Normalize embeddings to unit length before indexing and at query time. bge-m3 is a
+    # cosine-similarity model, and L2 over unit vectors ranks identically to cosine, so this
+    # pairs the metric to the model. Default False keeps the historical L2-over-raw-vectors
+    # behavior (and any index built before this knob existed); it must match at build and
+    # query time, so an index records the value it was built with in meta.json.
+    faiss_normalize: bool = False
+
     # HTTP server (mnemosyne-http) bind address — for web UIs / services (e.g. an Argus
     # "ask the brain" box) that can't speak MCP.
     http_host: str = "127.0.0.1"

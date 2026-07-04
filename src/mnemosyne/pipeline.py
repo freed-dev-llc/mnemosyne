@@ -113,8 +113,9 @@ def ingest(
     emb_model = _first_str(embedding_model, pack.embedding_model, settings.embedding_model)
     embeddings = get_embeddings(emb_model, settings)
 
+    normalize = settings.faiss_normalize
     path = index_mod.index_dir(pack.name, settings)
-    store = index_mod.build_index(chunks, embeddings, path)
+    store = index_mod.build_index(chunks, embeddings, path, normalize=normalize)
     # Report what was actually embedded and indexed: build_index skips any chunk the embedder
     # cannot embed (issue #40), so this can be < len(chunks); it equals it on a clean run.
     indexed = int(store.index.ntotal)
@@ -127,6 +128,7 @@ def ingest(
             "embedding_model": emb_model,
             "chunk_size": size,
             "chunk_overlap": overlap,
+            "normalize": normalize,
         },
     )
     return IngestStats(
@@ -158,13 +160,17 @@ class RagPipeline:
                 f"No index for pack '{pack.name}'. Build it first: mnemosyne ingest {pack.name}"
             )
 
-        # Reuse the exact embedding model recorded at ingest time.
+        # Reuse the exact embedding model + normalization recorded at ingest time, so queries
+        # are embedded and scored the same way the stored vectors were. An index built before
+        # the ``normalize`` knob existed has no key, defaulting to the historical False.
         meta = index_mod.read_meta(path) or {}
         emb_model = (
             meta.get("embedding_model") or pack.embedding_model or self.settings.embedding_model
         )
         self.embeddings = get_embeddings(emb_model, self.settings)
-        self.store = index_mod.load_index(path, self.embeddings)
+        self.store = index_mod.load_index(
+            path, self.embeddings, normalize=bool(meta.get("normalize", False))
+        )
 
         self.top_k = _first_int(top_k, pack.top_k, self.settings.top_k)
         model = _first_str(chat_model, pack.chat_model, self.settings.chat_model)
