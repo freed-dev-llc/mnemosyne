@@ -6,6 +6,8 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-04
+
 ### Added
 
 - [ADR-0017](docs/architecture/adr/0017-retrieval-quality-known-limitations.md) documenting
