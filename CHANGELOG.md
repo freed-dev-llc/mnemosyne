@@ -8,6 +8,12 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Release helper `scripts/sync-spark.sh`: updates a remote install to a git ref (default
+  `origin/main`, or a tag/branch/sha) and brings the `mnemosyne-http` service up to date in one
+  command. It aborts on a dirty tree, hard-resets to the ref, reinstalls the editable package
+  only when `pyproject.toml` changed, restarts the service when the code moved or the running
+  version lags the installed one, and health-checks the result. Host and paths are overridable
+  via env vars; `--no-restart` syncs without touching the service. Documented in `deploy/README.md`.
 - Manual doc staging via `MNEMOSYNE_STAGING_DIR`: a directory outside the repo where a
   contributor drops third-party docs that must never enter git; `ingest` folds any supported
   file under `<staging_dir>/<pack-name>/` into the corpus, exactly like `sources/`. Unset by
