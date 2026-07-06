@@ -6,6 +6,15 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- [ADR-0018](docs/architecture/adr/0018-nemotron-embedder-evaluation.md): evaluated
+  `llama-embed-nemotron-8b` as an embedder candidate and decided not to adopt (the community
+  GGUF produces no embeddings via Ollama, and the research-only license blocks production
+  use); `bge-m3` and all retrieval defaults are unchanged. A decision record only, with the
+  reusable low-k headroom baseline (hit@1 0.53 / hit@2 0.84) for scoring future candidates;
+  no behavior change.
+
 ### Fixed
 
 - Docs caught up to the 0.4.0 retrieval behavior: `.env.example` now lists
