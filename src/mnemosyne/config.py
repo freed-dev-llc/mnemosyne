@@ -10,6 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -77,8 +78,24 @@ class Settings(BaseSettings):
     # (L2 over unit-norm bge-m3 vectors, range [0, 2]). The default 1.0 was tuned on the
     # ubiquiti eval set: it kept full in-domain recall (18/19, unchanged from no floor) while
     # rejecting 11/12 deliberately off-topic queries. Retune for a different embedding model or
-    # corpus; set to None to disable and restore the always-return-top-k behavior.
+    # corpus; set MNEMOSYNE_SCORE_FLOOR=none (synonyms: null, empty string) to disable and
+    # restore the always-return-top-k behavior.
     score_floor: float | None = 1.0
+
+    @field_validator("score_floor", mode="before")
+    @classmethod
+    def _score_floor_none_words(cls, value: object) -> object:
+        """Map the documented disable spellings to ``None`` before float parsing.
+
+        Env vars are always strings, and pydantic's float parser rejects "none"/"null"
+        (``float_parsing``), so without this hook the disable promised above was
+        unreachable through the environment. Only the three none-words match; any other
+        value passes through unchanged, so numeric strings still parse as floats and
+        garbage still raises ``ValidationError``.
+        """
+        if isinstance(value, str) and value.strip().lower() in {"", "none", "null"}:
+            return None
+        return value
 
     # HTTP server (mnemosyne-http) bind address — for web UIs / services (e.g. an Argus
     # "ask the brain" box) that can't speak MCP.
