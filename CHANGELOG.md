@@ -17,6 +17,12 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Fixed
 
+- The documented `score_floor` disable now parses from the environment:
+  `MNEMOSYNE_SCORE_FLOOR=none` (synonyms: `null` or an empty value, case-insensitive) disables
+  the relevance floor and restores the always-return-top-k behavior. Previously every such
+  spelling failed pydantic `float_parsing`, so the floor could not be turned off via env
+  despite config.py and the 0.4.0 notes saying it could. Numeric values and the Python-side
+  `score_floor=None` are unchanged; anything else still fails validation.
 - Docs caught up to the 0.4.0 retrieval behavior: `.env.example` now lists
   `MNEMOSYNE_SCORE_FLOOR` and `MNEMOSYNE_FAISS_NORMALIZE`, and the README, `docs/ARCHITECTURE.md`,
   and `docs/RAG-101.md` note the relevance floor (an off-topic question answers "not in the
