@@ -178,6 +178,13 @@ def eval_cmd(
         help="Print one machine-readable JSON line instead of tables (retrieval-only, "
         "report-only; combines with neither --faithfulness nor --gate). See ADR-0019.",
     ),
+    include_fetched: bool = typer.Option(
+        False,
+        "--include-fetched",
+        help="Also score the fetched-coverage questions (corpus: fetched), authored against a "
+        "served, URL-inclusive index; they cannot hit on a local-only build. Not combinable "
+        "with --gate/--min-hit-rate. See ADR-0020.",
+    ),
 ) -> None:
     """Report a pack's retrieval hit-rate against its labelled question set.
 
@@ -186,7 +193,9 @@ def eval_cmd(
     floor, exit ``0`` when it meets it. See ADR-0008. ``--json`` prints one machine-readable JSON
     line (scores plus index provenance) for the served-corpus eval history; it is retrieval-only
     and report-only, so it refuses ``--faithfulness`` and ``--gate``/``--min-hit-rate``
-    (ADR-0019).
+    (ADR-0019). ``--include-fetched`` widens the population with the fetched-coverage questions;
+    the floor is calibrated to the curated local-only population, so it refuses
+    ``--gate``/``--min-hit-rate`` (ADR-0020).
     """
     # The --json surface is deliberately minimal (ADR-0019): retrieval-only and report-only.
     # Fail fast on a posture clash instead of guessing which output the caller wanted.
@@ -194,8 +203,17 @@ def eval_cmd(
         _die(ValueError("--json is retrieval-only; it cannot be combined with --faithfulness."))
     if json_output and (gate or min_hit_rate is not None):
         _die(ValueError("--json is report-only; it cannot be combined with --gate/--min-hit-rate."))
+    # Same fail-fast posture for the population switch (ADR-0020): the 0.9 floor is calibrated
+    # to the curated local-only population, so gating a widened population is never meaningful.
+    if include_fetched and (gate or min_hit_rate is not None):
+        _die(
+            ValueError(
+                "--include-fetched cannot be combined with --gate/--min-hit-rate: the floor is "
+                "calibrated to the curated (local-only) question population."
+            )
+        )
     try:
-        report = run_retrieval_eval(pack, k=k)
+        report = run_retrieval_eval(pack, k=k, include_fetched=include_fetched)
     except (KeyError, FileNotFoundError, ValueError) as exc:
         _die(exc)
     if json_output:
@@ -219,7 +237,7 @@ def eval_cmd(
     _print_eval(report, show_misses=show_misses)
     if faithfulness:
         try:
-            faith = run_faithfulness_eval(pack, k=k)
+            faith = run_faithfulness_eval(pack, k=k, include_fetched=include_fetched)
         except (KeyError, FileNotFoundError, ValueError) as exc:
             _die(exc)
         console.print(

@@ -8,6 +8,18 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Fetched-coverage eval questions with a per-question `corpus` tag
+  ([ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md)): 13 ubiquiti
+  questions authored from the served index's fetched Help Center chunks under an
+  identifier-anchored ground-truth policy (port numbers, protocol/standard names, commands,
+  feature names; no third-party prose), each tagged `corpus: fetched` in `questions.yaml` and
+  verified live before landing (expected strings co-locate in one served-index chunk at k=5;
+  union-miss on local-only). The loader excludes them by default, so the CI gate's local-only
+  population (19 questions, floor 0.9) is unchanged by construction; `mnemosyne eval
+  --include-fetched` opts in (it refuses `--gate`/`--min-hit-rate`, whose floor is calibrated
+  to the curated population), JSON results carry the `corpus` field, and
+  `scripts/eval-served.sh` passes the flag so the served history measures coverage plus
+  survival (series `total` 19 -> 32).
 - Served-corpus eval, report-only (`mnemosyne eval <pack> --json`;
   [ADR-0019](docs/architecture/adr/0019-served-corpus-eval-report-only.md)): one
   machine-readable JSON line per run carrying the scores plus the provenance that says which

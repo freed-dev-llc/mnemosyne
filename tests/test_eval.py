@@ -10,6 +10,7 @@ import dataclasses
 import json
 import re
 import tempfile
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +25,7 @@ from mnemosyne.eval import (
     EvalQuestion,
     EvalReport,
     EvalResult,
+    FaithfulnessReport,
     SweepConfig,
     SweepReport,
     SweepRow,
@@ -166,7 +168,8 @@ def test_load_questions_reads_the_shipped_ubiquiti_set() -> None:
 
 
 def test_every_shipped_ubiquiti_question_has_expected_strings() -> None:
-    for q in load_questions("ubiquiti"):
+    # include_fetched=True lints the full shipped set, fetched-coverage block included.
+    for q in load_questions("ubiquiti", include_fetched=True):
         assert q.expected, f"question '{q.id}' has an empty expected list"
         for item in q.expected:
             alts = [item] if isinstance(item, str) else item
@@ -350,33 +353,48 @@ def test_gate_exit_code_boundary_is_epsilon_tolerant() -> None:
 
 def test_eval_command_without_gate_always_exits_zero(monkeypatch: pytest.MonkeyPatch) -> None:
     # Default path is report-only: even a dismal hit-rate exits 0 (no regression to Step 1).
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _report(0.1))
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _report(0.1),
+    )
     result = runner.invoke(app, ["eval", "demo"])
     assert result.exit_code == 0
 
 
 def test_eval_command_gate_passes_at_or_above_floor(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _report(0.8))
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _report(0.8),
+    )
     result = runner.invoke(app, ["eval", "demo", "--gate", "--min-hit-rate", "0.7"])
     assert result.exit_code == GATE_OK
 
 
 def test_eval_command_gate_fails_below_floor(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _report(0.5))
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _report(0.5),
+    )
     result = runner.invoke(app, ["eval", "demo", "--gate", "--min-hit-rate", "0.7"])
     assert result.exit_code == GATE_BELOW_FLOOR
 
 
 def test_eval_command_min_hit_rate_alone_implies_gate(monkeypatch: pytest.MonkeyPatch) -> None:
     # A bare --min-hit-rate (no --gate) still gates: below the floor exits 2.
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _report(0.5))
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _report(0.5),
+    )
     result = runner.invoke(app, ["eval", "demo", "--min-hit-rate", "0.7"])
     assert result.exit_code == GATE_BELOW_FLOOR
 
 
 def test_eval_command_rejects_out_of_range_floor(monkeypatch: pytest.MonkeyPatch) -> None:
     # An out-of-[0,1] floor is an operational error (exit 1, via _die), not a gate verdict.
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _report(0.9))
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _report(0.9),
+    )
     result = runner.invoke(app, ["eval", "demo", "--min-hit-rate", "1.5"])
     assert result.exit_code == 1
 
@@ -782,9 +800,16 @@ _META = {
 
 
 def _json_report() -> EvalReport:
+    # One question per corpus class, so the serialized `corpus` tags are pinned (ADR-0020).
     results = [
         EvalResult(id="q1", question="what is a vlan?", hit=True, missing=[]),
-        EvalResult(id="q2", question="what is poe?", hit=False, missing=["802.3af | 802.3at"]),
+        EvalResult(
+            id="q2",
+            question="what is poe?",
+            hit=False,
+            missing=["802.3af | 802.3at"],
+            corpus="fetched",
+        ),
     ]
     return EvalReport(pack="demo", k=5, total=2, hits=1, hit_rate=0.5, results=results)
 
@@ -822,8 +847,20 @@ def test_serialize_retrieval_report_shape_and_injected_timestamp() -> None:
         "chunk_overlap": 150,
     }
     assert payload["results"] == [
-        {"id": "q1", "question": "what is a vlan?", "hit": True, "missing": []},
-        {"id": "q2", "question": "what is poe?", "hit": False, "missing": ["802.3af | 802.3at"]},
+        {
+            "id": "q1",
+            "question": "what is a vlan?",
+            "hit": True,
+            "missing": [],
+            "corpus": "curated",
+        },
+        {
+            "id": "q2",
+            "question": "what is poe?",
+            "hit": False,
+            "missing": ["802.3af | 802.3at"],
+            "corpus": "fetched",
+        },
     ]
     # Installed distribution version (or the __version__ fallback): a non-empty string.
     assert isinstance(payload["mnemosyne_version"], str)
@@ -865,7 +902,10 @@ def test_serialize_retrieval_report_carries_no_host_coordinates() -> None:
 
 def _patch_json_eval(monkeypatch: pytest.MonkeyPatch, *, meta: dict | None) -> None:
     """Wire eval_cmd's --json collaborators to canned offline values (no Ollama, no index)."""
-    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _json_report())
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _json_report(),
+    )
     monkeypatch.setattr("mnemosyne.index.read_meta", lambda path: meta)
     monkeypatch.setattr(
         "mnemosyne.cli.get_settings",
@@ -922,3 +962,168 @@ def test_eval_json_refuses_min_hit_rate_because_it_implies_gate() -> None:
     result = runner.invoke(app, ["eval", "demo", "--json", "--min-hit-rate", "0.5"])
     assert result.exit_code == 1
     assert "report-only" in result.output
+
+
+# --- Fetched-coverage questions (corpus tag + --include-fetched; ADR-0020) -------------------
+
+
+_CORPUS_FIXTURE = """\
+questions:
+  - id: cur-1
+    question: curated fact?
+    expected:
+      - alpha
+  - id: fet-1
+    question: fetched fact?
+    expected:
+      - beta
+    corpus: fetched
+"""
+
+
+def _pack_with_questions(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, text: str) -> None:
+    """Point mnemosyne.eval's ``get_pack`` at a scratch pack directory shipping ``text``."""
+    (tmp_path / "eval").mkdir()
+    (tmp_path / "eval" / "questions.yaml").write_text(text, encoding="utf-8")
+    monkeypatch.setattr("mnemosyne.eval.get_pack", lambda name: SimpleNamespace(directory=tmp_path))
+
+
+def test_load_questions_excludes_fetched_by_default(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _pack_with_questions(monkeypatch, tmp_path, _CORPUS_FIXTURE)
+    questions = load_questions("demo")
+    assert [q.id for q in questions] == ["cur-1"]
+    assert questions[0].corpus == "curated"
+
+
+def test_load_questions_include_fetched_returns_all(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _pack_with_questions(monkeypatch, tmp_path, _CORPUS_FIXTURE)
+    questions = load_questions("demo", include_fetched=True)
+    assert [q.id for q in questions] == ["cur-1", "fet-1"]
+    assert [q.corpus for q in questions] == ["curated", "fetched"]
+
+
+def test_load_questions_rejects_unknown_corpus_even_when_filtered(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Validation runs before filtering: a bad tag fails the default (excluding) load too.
+    _pack_with_questions(
+        monkeypatch, tmp_path, _CORPUS_FIXTURE.replace("corpus: fetched", "corpus: served")
+    )
+    with pytest.raises(ValueError, match="fet-1"):
+        load_questions("demo")
+
+
+def test_load_questions_rejects_explicit_curated(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Single-spelling contract (ADR-0020): curated is expressed by omitting the field.
+    _pack_with_questions(
+        monkeypatch, tmp_path, _CORPUS_FIXTURE.replace("corpus: fetched", "corpus: curated")
+    )
+    with pytest.raises(ValueError, match="invalid corpus"):
+        load_questions("demo", include_fetched=True)
+
+
+def test_shipped_default_population_is_unchanged_by_adr_0020() -> None:
+    # The CI gate's population: exactly the 19 curated questions, none tagged.
+    questions = load_questions("ubiquiti")
+    assert len(questions) == 19
+    assert all(q.corpus == "curated" for q in questions)
+
+
+def test_shipped_fetched_questions_match_the_phase_a_batch() -> None:
+    all_questions = load_questions("ubiquiti", include_fetched=True)
+    assert len(all_questions) == 32
+    assert [q.id for q in all_questions if q.corpus == "fetched"] == [
+        "dhcp-option-43",
+        "l3-adoption-port",
+        "setup-blocked-ports",
+        "stun-port",
+        "mdns-forwarding",
+        "igmp-snooping",
+        "acl-unsupported-models",
+        "mac-acl-same-vlan",
+        "radius-dynamic-vlan",
+        "vlan-magic",
+        "zone-matrix",
+        "l3-switch-routing",
+        "guest-client-isolation",
+    ]
+
+
+def test_score_copies_corpus_onto_results() -> None:
+    questions = [
+        EvalQuestion(id="c", question="q1?", expected=["alpha"]),
+        EvalQuestion(id="f", question="q2?", expected=["beta"], corpus="fetched"),
+    ]
+    report = score(questions, _retrieve_from("alpha beta"), k=1)
+    assert [r.corpus for r in report.results] == ["curated", "fetched"]
+
+
+def test_run_retrieval_eval_include_fetched_widens_the_population_offline() -> None:
+    report = run_retrieval_eval("ubiquiti", k=5, retrieve=lambda q, k: [], include_fetched=True)
+    assert report.total == 32
+
+
+def test_eval_include_fetched_refuses_gate() -> None:
+    # No monkeypatch: the posture check dies before any eval work happens (ADR-0020).
+    result = runner.invoke(app, ["eval", "demo", "--include-fetched", "--gate"])
+    assert result.exit_code == 1
+    assert "--include-fetched" in result.output
+
+
+def test_eval_include_fetched_refuses_min_hit_rate() -> None:
+    result = runner.invoke(app, ["eval", "demo", "--include-fetched", "--min-hit-rate", "0.5"])
+    assert result.exit_code == 1
+    assert "--include-fetched" in result.output
+
+
+def test_eval_include_fetched_threads_to_the_eval(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, bool] = {}
+
+    def fake_run(pack: str, k: int | None = None, include_fetched: bool = False) -> EvalReport:
+        captured["include_fetched"] = include_fetched
+        return _json_report()
+
+    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", fake_run)
+    result = runner.invoke(app, ["eval", "demo", "--include-fetched"])
+    assert result.exit_code == 0
+    assert captured["include_fetched"] is True
+
+
+def test_eval_include_fetched_threads_to_the_faithfulness_eval(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Pins that `-f --include-fetched` scores both metrics over ONE population: a refactor
+    # that stopped threading the kwarg to the faithfulness path would silently split the
+    # retrieval and faithfulness populations.
+    captured: dict[str, bool] = {}
+
+    def fake_faith(
+        pack: str, k: int | None = None, include_fetched: bool = False
+    ) -> FaithfulnessReport:
+        captured["include_fetched"] = include_fetched
+        return FaithfulnessReport(pack=pack, k=5, n=2, total=0, mean_faithfulness=0.0, results=[])
+
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: _json_report(),
+    )
+    monkeypatch.setattr("mnemosyne.cli.run_faithfulness_eval", fake_faith)
+    result = runner.invoke(app, ["eval", "demo", "--faithfulness", "--include-fetched"])
+    assert result.exit_code == 0
+    assert captured["include_fetched"] is True
+
+
+def test_eval_json_combines_with_include_fetched_and_results_carry_corpus(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _patch_json_eval(monkeypatch, meta=_META)
+    result = runner.invoke(app, ["eval", "demo", "--json", "--include-fetched"])
+    assert result.exit_code == 0
+    payload = json.loads(result.output.strip())
+    assert [r["corpus"] for r in payload["results"]] == ["curated", "fetched"]

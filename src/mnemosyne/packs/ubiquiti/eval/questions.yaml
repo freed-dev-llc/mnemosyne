@@ -10,6 +10,15 @@
 # questions only from text that is actually in the corpus; if a fact isn't there, it doesn't
 # belong here. The first block covers the seed (core model); the second covers the security,
 # RF, and operations primers (added in ADR-0014, issue #41).
+#
+# A question may carry `corpus: fetched` (ADR-0020): its ground truth lives in the fetched
+# Help Center pages, so it is only answerable on a served-style (URL-inclusive) index. The
+# loader EXCLUDES those by default; the CI-gated, local-only eval population is the untagged
+# questions above, and `mnemosyne eval --include-fetched` opts a served run into the rest.
+# Sourcing policy for fetched ground truth (identifier-anchored, ADR-0020): expected strings
+# are restricted to non-creative technical material: port numbers, protocol/standard names,
+# commands, product/feature/UI names, acronyms, and where truly needed a factual phrase of a
+# few words. No third-party prose. The third block below follows that policy.
 questions:
   - id: unifi-model
     question: How is a UniFi network organized around the controller?
@@ -138,3 +147,108 @@ questions:
     expected:
       - controller backup
       - read the release notes
+
+  # Fetched-coverage questions (ADR-0020): ground truth drawn from the fetched Help
+  # Center pages under the identifier-anchored policy; only in the index when the URL
+  # corpus is ingested, so each carries `corpus: fetched` and is excluded from the
+  # default (local-only, CI-gated) eval population.
+  - id: dhcp-option-43
+    question: How can a DHCP server tell a UniFi device where the remote Network Application lives?
+    expected:
+      - option 43
+    corpus: fetched
+    note: Remote Adoption (Layer 3); DHCP-based inform.
+
+  - id: l3-adoption-port
+    question: What connectivity must exist between a UniFi device and a remote Network Application for Layer 3 adoption?
+    expected:
+      - TCP Port 8080
+    corpus: fetched
+    note: Remote Adoption (Layer 3) requirements.
+
+  - id: setup-blocked-ports
+    question: Which ports do ISP modems or third-party firewalls sometimes block that break UniFi setup?
+    expected:
+      - "8883"
+      - "3478"
+    corpus: fetched
+    note: How to Set Up UniFi, required-ports call-out.
+
+  - id: stun-port
+    question: Which protocol and port does UniFi use for STUN?
+    expected:
+      - STUN
+      - "3478"
+    corpus: fetched
+    note: Required Ports Reference.
+
+  - id: mdns-forwarding
+    question: How can Chromecast or AirPlay devices be discovered across VLANs in UniFi?
+    expected:
+      - mDNS
+      - Chromecast
+    corpus: fetched
+    note: UniFi Switch Settings, mDNS forwarding.
+
+  - id: igmp-snooping
+    question: Which UniFi switch feature reduces multicast flooding?
+    expected:
+      - IGMP Snooping
+      - multicast
+    corpus: fetched
+    note: UniFi Switch Settings.
+
+  - id: acl-unsupported-models
+    question: Which UniFi switch models do not support ACLs?
+    expected:
+      - FlexMini
+      - USW Industrial
+    corpus: fetched
+    note: UniFi Switches and ACLs, requirements.
+
+  - id: mac-acl-same-vlan
+    question: Why use switch ACLs instead of firewall rules for isolating devices on the same VLAN?
+    expected:
+      - MAC ACL
+      - firewall rules
+    corpus: fetched
+    note: Switch ACLs vs firewall rules.
+
+  - id: radius-dynamic-vlan
+    question: How can UniFi assign a VLAN based on a user's login credentials?
+    expected:
+      - RADIUS
+      - 802.1X
+    corpus: fetched
+    note: Creating Virtual Networks, dynamic VLAN assignment.
+
+  - id: vlan-magic
+    question: What UniFi shortcut creates VLANs straight from the topology view on smaller sites?
+    expected:
+      - VLAN Magic
+      - Topology
+    corpus: fetched
+    note: Creating Virtual Networks.
+
+  - id: zone-matrix
+    question: Where does UniFi visually show the policies between firewall zones?
+    expected:
+      - Zone Matrix
+    corpus: fetched
+    note: Zone-Based Firewalls.
+
+  - id: l3-switch-routing
+    question: What happens when a Virtual Network's Router option is set to a UniFi Switch?
+    expected:
+      - Router
+      - Inter-VLAN routing
+    corpus: fetched
+    note: Layer 3 Routing page.
+
+  - id: guest-client-isolation
+    question: How do you stop guest WiFi clients on the same access point from reaching each other?
+    expected:
+      - Client Device Isolation
+      - ACL
+    corpus: fetched
+    note: Best Practices Guest WiFi.

@@ -63,6 +63,11 @@ class EvalQuestion:
     question: str
     expected: list[str | list[str]]
     note: str | None = None
+    # Which corpus carries this question's ground truth: "curated" (the default; the local
+    # seed/primer docs, present in every index) or "fetched" (URL-fetched pages, present only
+    # in a served-style index; see ADR-0020). In questions.yaml the field is written only as
+    # `corpus: fetched`; an absent field means curated.
+    corpus: str = "curated"
 
 
 @dataclass
@@ -73,6 +78,9 @@ class EvalResult:
     question: str
     hit: bool
     missing: list[str]
+    # Copied from the question, so a serialized history line can be sliced by question class
+    # (e.g. `jq 'select(.corpus == "fetched")'` over the results; ADR-0020).
+    corpus: str = "curated"
 
 
 @dataclass
@@ -87,12 +95,21 @@ class EvalReport:
     results: list[EvalResult]
 
 
-def load_questions(pack: str) -> list[EvalQuestion]:
+def load_questions(pack: str, *, include_fetched: bool = False) -> list[EvalQuestion]:
     """Load the labelled question set shipped with ``pack``.
 
     Reads ``packs/<pack>/eval/questions.yaml`` by convention (no manifest field — the
     location is fixed, which keeps the manifest schema untouched). Raises
     ``FileNotFoundError`` if the pack ships no question set.
+
+    A question may be tagged ``corpus: fetched`` (ADR-0020): its ground truth exists only
+    when the pack's URL corpus has been ingested (a served-style index). Those questions
+    are **excluded by default**, so the CI gate's deterministic local-only population
+    cannot change through flag discipline failure, only by code; pass
+    ``include_fetched=True`` to score them too. The accepted spellings are an absent field
+    (curated) or the literal ``fetched``; anything else, including an explicit
+    ``curated``, raises ``ValueError`` so the tag stays single-spelling. Validation runs
+    on every question, filtered out or not.
     """
     path = get_pack(pack).directory / "eval" / "questions.yaml"
     if not path.exists():
@@ -100,15 +117,26 @@ def load_questions(pack: str) -> list[EvalQuestion]:
             f"No eval question set for pack '{pack}'. Expected a file at {path}."
         )
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    return [
-        EvalQuestion(
-            id=item["id"],
-            question=item["question"],
-            expected=list(item["expected"]),
-            note=item.get("note"),
+    questions: list[EvalQuestion] = []
+    for item in raw.get("questions", []) or []:
+        corpus = item.get("corpus")
+        if corpus is not None and corpus != "fetched":
+            raise ValueError(
+                f"Question '{item.get('id', '?')}' has invalid corpus {corpus!r}: omit the "
+                "field for a curated question, or use 'fetched' (ADR-0020)."
+            )
+        if corpus == "fetched" and not include_fetched:
+            continue
+        questions.append(
+            EvalQuestion(
+                id=item["id"],
+                question=item["question"],
+                expected=list(item["expected"]),
+                note=item.get("note"),
+                corpus=corpus or "curated",
+            )
         )
-        for item in raw.get("questions", []) or []
-    ]
+    return questions
 
 
 def _alternatives(item: str | list[str]) -> list[str]:
@@ -143,7 +171,11 @@ def score(
             alternatives = _alternatives(item)
             if not any(alt.lower() in haystack for alt in alternatives):
                 missing.append(" | ".join(alternatives))
-        results.append(EvalResult(id=q.id, question=q.question, hit=not missing, missing=missing))
+        results.append(
+            EvalResult(
+                id=q.id, question=q.question, hit=not missing, missing=missing, corpus=q.corpus
+            )
+        )
     total = len(questions)
     hits = sum(1 for r in results if r.hit)
     hit_rate = hits / total if total else 0.0
@@ -156,14 +188,17 @@ def run_retrieval_eval(
     k: int | None = None,
     settings: Settings | None = None,
     retrieve: Retrieve | None = None,
+    include_fetched: bool = False,
 ) -> EvalReport:
     """Score ``pack``'s labelled question set against retrieval.
 
     When ``retrieve`` is omitted, build a :class:`RagPipeline` and use its ``.retrieve`` —
     that path needs Ollama and a built index, exactly like ``ask``/``search``. Injecting a
     ``retrieve`` callable (the way tests do) keeps the whole run offline.
+    ``include_fetched`` opts the run into the fetched-coverage questions (ADR-0020); the
+    default population stays identical to the CI gate's.
     """
-    questions = load_questions(pack)
+    questions = load_questions(pack, include_fetched=include_fetched)
     if retrieve is None:
         pipeline = RagPipeline(get_pack(pack), settings, top_k=k)
         retrieve = pipeline.retrieve
@@ -208,7 +243,8 @@ def serialize_retrieval_report(
     ISO-8601 string) is injected by the caller so this function stays pure and offline
     tests control it. Deliberately absent: any host coordinate, because history lines get
     pasted into issues. Retrieval-only by design: no faithfulness, no gate verdict (those
-    postures stay on their own flags).
+    postures stay on their own flags). Each result carries its question's ``corpus`` tag
+    (ADR-0020), so history trends can be sliced by question class.
     """
     index = (
         None
@@ -233,7 +269,13 @@ def serialize_retrieval_report(
         "faiss_normalize": faiss_normalize,
         "index": index,
         "results": [
-            {"id": r.id, "question": r.question, "hit": r.hit, "missing": r.missing}
+            {
+                "id": r.id,
+                "question": r.question,
+                "hit": r.hit,
+                "missing": r.missing,
+                "corpus": r.corpus,
+            }
             for r in report.results
         ],
     }
@@ -353,6 +395,7 @@ def run_faithfulness_eval(
     n: int = 2,
     settings: Settings | None = None,
     generate: Generate | None = None,
+    include_fetched: bool = False,
 ) -> FaithfulnessReport:
     """Score ``pack``'s generated answers for faithfulness against their retrieved context.
 
@@ -361,9 +404,10 @@ def run_faithfulness_eval(
     top-k chunks as the scoring context — that path needs Ollama and a built index, exactly like
     ``ask``. Injecting a ``generate`` callable (the way tests do) keeps the whole run offline.
     ``n`` threads through to :func:`score_faithfulness`; its default lives on the signature,
-    deliberately not a CLI flag (see ADR-0007).
+    deliberately not a CLI flag (see ADR-0007). ``include_fetched`` mirrors
+    :func:`run_retrieval_eval`, so one ``eval`` run scores both metrics over one population.
     """
-    questions = load_questions(pack)
+    questions = load_questions(pack, include_fetched=include_fetched)
     if generate is None:
         pipeline = RagPipeline(get_pack(pack), settings, top_k=k)
         k = pipeline.top_k
