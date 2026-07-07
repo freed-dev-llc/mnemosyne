@@ -1,0 +1,90 @@
+# Labelled retrieval question set for the OPNsense pack.
+#
+# Ground truth = expected substrings (see ADR-0006), each drawn verbatim from a local source
+# file in sources/. A question "hits" iff EVERY string in `expected` appears (case-insensitive)
+# in the concatenated top-k retrieved chunks. Author questions only from text that is actually
+# in the corpus. All questions are curated (local ground truth); the OPNsense pack is
+# curated-only (ADR-0027), so no `corpus: fetched` block exists here. The anchors favor
+# OPNsense-distinct facts (the os- plugin system, Zenarmor, built-in Suricata, the Phalcon MVC
+# GUI, editions) over facts it merely shares with pfSense.
+questions:
+  # --- Core concepts (opnsense-core-concepts.md) ---
+  - id: os-platform
+    question: What operating system and packet filter is OPNsense built on?
+    expected:
+      - FreeBSD
+      - pf packet filter
+    note: Shared pf/FreeBSD core; the accurate OPNsense answer.
+
+  - id: os-lineage
+    question: OPNsense began as a fork of what project, and which company develops it?
+    expected:
+      - fork
+      - pfSense
+      - Deciso
+    note: A 2015 fork of pfSense by Deciso. Distinct lineage.
+
+  - id: os-webgui
+    question: What framework is the OPNsense web GUI built on?
+    expected:
+      - Phalcon
+      - MVC
+    note: Phalcon MVC application; distinct from pfSense's webConfigurator.
+
+  - id: os-editions
+    question: What are the two editions of OPNsense?
+    expected:
+      - Community Edition
+      - Business Edition
+    note: Free CE vs Deciso's commercial Business Edition. Distinct.
+
+  # --- Plugins (opnsense-plugins.md) ---
+  - id: os-plugin-prefix
+    question: What name prefix do OPNsense plugins use, and where do you install them?
+    expected:
+      - os-
+      - Firmware
+      - Plugins
+    note: os- prefix; System > Firmware > Plugins. The distinct plugin system.
+
+  - id: os-plugin-examples
+    question: Which OPNsense plugins add the WireGuard VPN and Let's Encrypt (ACME) certificates?
+    expected:
+      - os-wireguard
+      - os-acme-client
+    note: Concrete os- plugin identifiers.
+
+  - id: os-zenarmor
+    question: What is OPNsense's next-generation firewall and deep-packet-inspection plugin, its former name, and its package?
+    expected:
+      - Zenarmor
+      - Sensei
+      - os-sensei
+    note: Zenarmor (formerly Sensei), Sunny Valley Networks; installs as os-sensei. Flagship distinct feature.
+
+  # --- Firewall model and intrusion detection (opnsense-firewall-ids.md) ---
+  - id: os-rule-model
+    question: In what order does OPNsense evaluate firewall rules, and are they stateful by default?
+    expected:
+      - stateful
+      - first match
+    note: Stateful by default; evaluated first match, top to bottom. Shared pf semantics.
+
+  - id: os-rule-direction
+    question: In which direction are OPNsense interface firewall rules applied by default?
+    expected:
+      - inbound
+    note: Rules filter inbound on the interface by default.
+
+  - id: os-rule-categories
+    question: How do you group and filter firewall rules in the OPNsense web GUI?
+    expected:
+      - Categories
+    note: Per-rule Category tags (colored). A distinct OPNsense UI feature.
+
+  - id: os-ids-suricata
+    question: What intrusion detection engine is built into OPNsense, and where is it configured?
+    expected:
+      - Suricata
+      - Intrusion Detection
+    note: Suricata built into the base; Services > Intrusion Detection. Distinct from pfSense's add-on Snort/Suricata packages.

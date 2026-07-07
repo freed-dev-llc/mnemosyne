@@ -43,6 +43,13 @@ def test_pfsense_is_discovered_in_tree() -> None:
     assert type(packs["pfsense"]) is KnowledgePack
 
 
+def test_opnsense_is_discovered_in_tree() -> None:
+    packs = discover_packs()
+    assert "opnsense" in packs
+    # No pack.py subclass: the base KnowledgePack handles the local primers (ADR-0027).
+    assert type(packs["opnsense"]) is KnowledgePack
+
+
 def test_manifest_properties_resolve() -> None:
     pack = get_pack("ubiquiti")
     assert pack.name == "ubiquiti"

@@ -8,6 +8,21 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Third knowledge pack, `opnsense`
+  ([ADR-0027](docs/architecture/adr/0027-third-knowledge-pack-opnsense.md),
+  [ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md)): a sibling of
+  `pfsense` and the first fork-sibling pack, proving the knowledge-pack model holds even when
+  two vendors share a codebase. Curated seed of 3 self-authored primers (core concepts,
+  plugins, firewall model and intrusion detection) plus 11 curated questions that clear the
+  0.9 retrieval gate at 11/11 on a local-only scratch index (bge-m3, 500/150; 3 docs / 16
+  chunks). The gated anchors favor facts that distinguish OPNsense from pfSense rather than
+  facts the two share: the `os-` plugin system installed from System > Firmware > Plugins,
+  the Zenarmor plugin (formerly Sensei, package `os-sensei`), Suricata built into the base
+  under Services > Intrusion Detection, the Phalcon MVC web GUI, and the Community versus
+  Business editions. The primers are original prose stating public, non-copyrightable
+  OPNsense facts, grounded in but copied from none of the OPNsense documentation, which is
+  itself BSD-2-Clause (permissive, unlike the Netgate and Ubiquiti Help Center declines).
+  Curated-only (`sources.yaml urls: []`). Wired into the CI `eval-gate` as a third gated pack.
 - Ubiquiti pack curated re-grow ([ADR-0014](docs/architecture/adr/0014-expand-ubiquiti-question-set.md),
   [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md),
   [ADR-0026](docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)):

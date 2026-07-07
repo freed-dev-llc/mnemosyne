@@ -93,16 +93,23 @@ jobs:
           mnemosyne ingest pfsense --local-only
           mnemosyne eval pfsense --gate | tee eval-pfsense.out
           pf_code=${PIPESTATUS[0]}
-          { echo "### Retrieval hit-rate gate"; echo '```'; cat eval.out; echo; cat eval-pfsense.out; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          # Severity spans BOTH packs so neither regression hides behind the other's exit code:
-          # ::error if EITHER pack is below floor (exit 2), else ::warning if either did not run
-          # cleanly (any non-zero), else success. exit 2 dominates a bare non-zero, which dominates 0.
-          if   [ "$code" -eq 2 ] || [ "$pf_code" -eq 2 ]; then
-            echo "::error title=Retrieval gate::hit-rate below floor (ubiquiti exit $code, pfsense exit $pf_code)"
+          # Third gated pack: OPNsense (curated-only, offline-buildable, ADR-0027), a
+          # fork-sibling of pfSense. bge-m3 is already pulled, so it adds one ingest + eval
+          # and never reds the run (this step is `continue-on-error`).
+          mnemosyne ingest opnsense --local-only
+          mnemosyne eval opnsense --gate | tee eval-opnsense.out
+          os_code=${PIPESTATUS[0]}
+          { echo "### Retrieval hit-rate gate"; echo '```'; cat eval.out; echo; cat eval-pfsense.out; echo; cat eval-opnsense.out; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # Severity spans ALL THREE packs so no regression hides behind another pack's exit
+          # code: ::error if ANY pack is below floor (exit 2), else ::warning if any did not
+          # run cleanly (any non-zero), else success. exit 2 dominates a bare non-zero, which
+          # dominates 0.
+          if   [ "$code" -eq 2 ] || [ "$pf_code" -eq 2 ] || [ "$os_code" -eq 2 ]; then
+            echo "::error title=Retrieval gate::hit-rate below floor (ubiquiti exit $code, pfsense exit $pf_code, opnsense exit $os_code)"
             exit 2
-          elif [ "$code" -ne 0 ] || [ "$pf_code" -ne 0 ]; then
-            echo "::warning title=Retrieval gate::eval did not run cleanly (ubiquiti exit $code, pfsense exit $pf_code)"
-            [ "$code" -ne 0 ] && exit "$code" || exit "$pf_code"
+          elif [ "$code" -ne 0 ] || [ "$pf_code" -ne 0 ] || [ "$os_code" -ne 0 ]; then
+            echo "::warning title=Retrieval gate::eval did not run cleanly (ubiquiti exit $code, pfsense exit $pf_code, opnsense exit $os_code)"
+            for c in "$code" "$pf_code" "$os_code"; do [ "$c" -ne 0 ] && exit "$c"; done
           fi
           exit 0
 
