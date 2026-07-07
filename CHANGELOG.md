@@ -74,6 +74,21 @@ All notable changes to Mnemosyne are documented here. The format is based on
   problems, `port-profiles` and `poe-cycle`, ADR-0021). Production re-ingest follows
   post-merge under the backup/restore protocol.
 
+### Changed
+
+- The ubiquiti pack reverts to curated-only: the fetched Ubiquiti Help Center harvest
+  (help.ui.com) was reviewed and declined on licensing grounds
+  ([ADR-0026](docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md),
+  mirroring the Netgate decline in
+  [ADR-0025](docs/architecture/adr/0025-netgate-docs-harvest-declined-curated-only.md)).
+  Ubiquiti's Terms of Service expressly forbid reproducing Help Center Content without written
+  permission. Removed the 24 `help.ui.com` URLs (`sources.yaml urls: []`), the 22
+  `corpus: fetched` eval questions, and the vestigial title-cleanup `pack.py`; the 4
+  self-authored primers and 19 curated questions are unchanged. On re-ingest the served index
+  goes 28 docs / 438 chunks → 4 docs / 43 chunks and the served eval goes 39/41 → 19/19 (the
+  two curated dilution victims `port-profiles` / `poe-cycle` recover). The generic ADR-0020
+  `--include-fetched` loader is retained for any future, properly-licensed corpus.
+
 ## [0.5.0] - 2026-07-07
 
 ### Added

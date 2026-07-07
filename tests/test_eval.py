@@ -1063,33 +1063,14 @@ def test_shipped_default_population_is_unchanged_by_adr_0020() -> None:
     assert all(q.corpus == "curated" for q in questions)
 
 
-def test_shipped_fetched_questions_match_the_phase_a_batch() -> None:
+def test_ubiquiti_ships_no_fetched_questions_after_the_harvest_decline() -> None:
+    # The fetched help.ui.com harvest was declined on licensing grounds (ADR-0026), so the pack
+    # is curated-only: even with include_fetched=True the shipped set is the 19 curated
+    # questions and nothing is tagged `corpus: fetched`. The generic `corpus`/`--include-fetched`
+    # loader machinery (ADR-0020) is exercised by the synthetic `demo` fixture below, not here.
     all_questions = load_questions("ubiquiti", include_fetched=True)
-    assert len(all_questions) == 41
-    assert [q.id for q in all_questions if q.corpus == "fetched"] == [
-        "dhcp-option-43",
-        "l3-adoption-port",
-        "setup-blocked-ports",
-        "stun-port",
-        "mdns-forwarding",
-        "igmp-snooping",
-        "acl-unsupported-models",
-        "mac-acl-same-vlan",
-        "radius-dynamic-vlan",
-        "vlan-magic",
-        "zone-matrix",
-        "l3-switch-routing",
-        "guest-client-isolation",
-        "vpn-site-magic",
-        "wireguard-port",
-        "teleport-invite",
-        "backup-file-ext",
-        "reset-hold-time",
-        "dns-forward-domain",
-        "dns-port",
-        "channel-ai",
-        "qos-dscp",
-    ]
+    assert len(all_questions) == 19
+    assert all(q.corpus == "curated" for q in all_questions)
 
 
 def test_score_copies_corpus_onto_results() -> None:
@@ -1101,9 +1082,18 @@ def test_score_copies_corpus_onto_results() -> None:
     assert [r.corpus for r in report.results] == ["curated", "fetched"]
 
 
-def test_run_retrieval_eval_include_fetched_widens_the_population_offline() -> None:
-    report = run_retrieval_eval("ubiquiti", k=5, retrieve=lambda q, k: [], include_fetched=True)
-    assert report.total == 41
+def test_run_retrieval_eval_include_fetched_widens_the_population_offline(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Generic loader behavior on the synthetic fixture (ADR-0020): include_fetched widens the
+    # scored population from the curated question to the full set. Proven on the demo fixture
+    # rather than a shipped pack so it stays true regardless of any pack's corpus (ubiquiti is
+    # curated-only after ADR-0026).
+    _pack_with_questions(monkeypatch, tmp_path, _CORPUS_FIXTURE)
+    curated = run_retrieval_eval("demo", k=5, retrieve=lambda q, k: [])
+    assert curated.total == 1
+    widened = run_retrieval_eval("demo", k=5, retrieve=lambda q, k: [], include_fetched=True)
+    assert widened.total == 2
 
 
 def test_eval_include_fetched_refuses_gate() -> None:

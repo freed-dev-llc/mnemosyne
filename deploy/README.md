@@ -104,15 +104,20 @@ jq -r '[.timestamp, .mnemosyne_version, .index.chunks, .hit_rate] | @tsv' \
   knowledge/eval-history/ubiquiti.jsonl
 ```
 
-`index.chunks` says which index a line measured (42 = local-only seed corpus, ~294 =
-fetched-inclusive served index), so local test runs and production snapshots in the same
-file stay distinguishable.
+`index.chunks` says which index a line measured (42 = the original local-only seed corpus,
+up to 438 = the fetched-inclusive served index while the help.ui.com harvest was live), so
+local test runs and production snapshots in the same file stay distinguishable. Since
+[ADR-0026](../docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)
+declined that harvest, the served ubiquiti index reverts to curated-only (~43 chunks).
 
-**Series change (ADR-0020):** the script passes `--include-fetched`, so runs score two
-question classes and the ubiquiti series `total` moved from 19 to 32. Older 19-question
-lines stay comparable: slice by the per-result `corpus` tag instead of reading the
-headline `hit_rate` across the boundary. Curated hits track the old series; fetched hits
-are the new coverage signal:
+**Series change (ADR-0020):** the `--include-fetched` flag scores two question classes side
+by side for any pack that ships a fetched class: slice by the per-result `corpus` tag instead
+of reading the headline `hit_rate` across the boundary. Historically the ubiquiti series
+`total` moved from 19 to 32 while it carried fetched questions; since
+[ADR-0026](../docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)
+declined the harvest, ubiquiti's served history now measures curated only (`total` 19) and
+`--include-fetched` is a no-op for it. Curated hits track the old series; fetched hits were
+the coverage signal while the harvest shipped:
 
 ```bash
 jq -r '[.timestamp,
@@ -122,12 +127,15 @@ jq -r '[.timestamp,
 ```
 
 **The caveat when reading the number:** the 19 curated ubiquiti questions are written
-against the curated seed corpus, so they measure *curated-fact survival under
-fetched-content dilution*: a drop means fetched chunks are displacing the curated answer
-chunks. The 13 `corpus: fetched` questions (ADR-0020) measure *fetched-content coverage*:
-whether the fetched Help Center chunks are themselves retrievable. Help Center pages
-change, so a drift-induced miss on a fetched question is review signal (nothing gates on
-them), and their ground truth may need maintenance after a re-ingest.
+against the curated seed corpus, so while the fetched harvest shipped they measured
+*curated-fact survival under fetched-content dilution*: a drop meant fetched chunks were
+displacing the curated answer chunks. A pack's `corpus: fetched` questions (ADR-0020)
+measure *fetched-content coverage* for whatever fetched corpus it ships; ubiquiti ships
+none since
+[ADR-0026](../docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)
+declined the help.ui.com harvest on licensing grounds, so its served history now measures
+curated only. The `--include-fetched` mechanism (and the drift-review use case for any
+pack that does carry a fetched class) stays generic for a future, properly-licensed corpus.
 
 ## Reachability and security
 
