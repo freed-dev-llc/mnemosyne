@@ -185,10 +185,11 @@ def test_load_questions_raises_when_the_set_is_absent() -> None:
 
 
 def test_load_questions_reads_the_shipped_pfsense_set() -> None:
-    # The curated pfSense seed ships exactly 10 questions, all curated (ADR-0024); a fetched
-    # Netgate block is a later roadmap step, so nothing here is tagged `corpus: fetched`.
+    # The curated pfSense set ships exactly 17 questions, all curated (ADR-0024); the R1
+    # expansion added HA, packages, and DNS primers (10 -> 17). A fetched Netgate block is a
+    # later roadmap step, so nothing here is tagged `corpus: fetched`.
     questions = load_questions("pfsense")
-    assert len(questions) == 10
+    assert len(questions) == 17
     assert all(q.corpus == "curated" for q in questions)
 
 

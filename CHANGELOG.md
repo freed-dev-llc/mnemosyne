@@ -8,6 +8,18 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- pfSense pack R1 curated coverage expansion
+  ([ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md),
+  [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md)): 3 new self-authored
+  primers (high availability: CARP, pfsync, XMLRPC config sync; packages: Snort/Suricata
+  IDS/IPS, pfBlockerNG DNSBL/GeoIP; DNS services: Unbound resolver, dnsmasq forwarder) and 7
+  identifier-anchored curated questions, growing the pfSense set from 10 to 17 and clearing the
+  0.9 retrieval gate at 17/17 on a local-only scratch index (bge-m3, 500/150; 3 docs / 14 chunks
+  to 6 docs / 22 chunks). The Step-12 deferred pair (`aliases`, `floating-rules`) was retested
+  against the larger index and still misses at k=5, so it stays out of the gated set as a
+  documented recall-rank gap, same class as
+  [ADR-0021](docs/architecture/adr/0021-hybrid-retrieval-evaluation.md). Curated-only: no
+  fetched URLs added (`sources.yaml urls: []` unchanged).
 - Second knowledge pack, `pfsense`
   ([ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md)): the first in-tree
   vendor expert beyond the `ubiquiti` worked example, proving the knowledge-pack model

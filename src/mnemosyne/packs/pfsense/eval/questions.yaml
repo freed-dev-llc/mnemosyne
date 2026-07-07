@@ -75,3 +75,53 @@ questions:
       - OpenVPN
       - IPsec
     note: OpenVPN and IPsec built in; WireGuard is an add-on package.
+
+  # --- High availability (pfsense-high-availability.md) ---
+  - id: carp-protocol
+    question: What protocol lets two pfSense firewalls share a virtual IP for high availability?
+    expected:
+      - CARP
+      - Common Address Redundancy Protocol
+    note: CARP shares a CARP VIP between the master and backup nodes.
+
+  - id: pfsync-state
+    question: How does a pfSense HA cluster keep established connections alive across a failover?
+    expected:
+      - pfsync
+      - state table
+    note: pfsync synchronizes the firewall state table between nodes.
+
+  - id: xmlrpc-config-sync
+    question: What synchronizes configuration from the primary pfSense node to the secondary?
+    expected:
+      - XMLRPC
+      - configuration synchronization
+    note: XMLRPC config sync, enabled on the primary node only.
+
+  # --- Packages (pfsense-packages.md) ---
+  - id: ids-ips-packages
+    question: Which two add-on packages provide IDS/IPS on pfSense?
+    expected:
+      - Snort
+      - Suricata
+    note: The two intrusion detection/prevention packages.
+
+  - id: pfblockerng-dnsbl
+    question: Which pfSense package blocks unwanted domains and IP ranges, and what is its domain-blocking feature called?
+    expected:
+      - pfBlockerNG
+      - DNSBL
+    note: pfBlockerNG; DNSBL is its DNS blocklist.
+
+  # --- DNS services (pfsense-services.md) ---
+  - id: dns-resolver-unbound
+    question: What software backs the pfSense DNS Resolver?
+    expected:
+      - Unbound
+    note: The DNS Resolver is Unbound.
+
+  - id: dns-forwarder-dnsmasq
+    question: What software backs the pfSense DNS Forwarder?
+    expected:
+      - dnsmasq
+    note: The DNS Forwarder is dnsmasq.
