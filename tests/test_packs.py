@@ -15,14 +15,16 @@ from mnemosyne.packs import registry
 from mnemosyne.packs.base import KnowledgePack
 from mnemosyne.packs.general import GeneralPack
 from mnemosyne.packs.registry import discover_packs, get_pack
-from mnemosyne.packs.ubiquiti import UbiquitiPack
 from mnemosyne.pipeline import ingest
 
 
 def test_ubiquiti_is_discovered_in_tree() -> None:
     packs = discover_packs()
     assert "ubiquiti" in packs
-    assert isinstance(packs["ubiquiti"], UbiquitiPack)
+    # No pack.py subclass: the curated-only pack is manifest-driven by the base KnowledgePack.
+    # The fetched help.ui.com harvest (and its Help Center title-cleanup override) was declined
+    # on licensing grounds (ADR-0026).
+    assert type(packs["ubiquiti"]) is KnowledgePack
 
 
 def test_general_pack_is_discovered() -> None:
@@ -60,15 +62,6 @@ def test_seed_corpus_is_resolved_and_loads() -> None:
     docs = pack.load()
     assert docs, "the seed corpus should make the pack ingestable out of the box"
     assert any("UniFi" in d.page_content for d in docs)
-
-
-def test_ubiquiti_cleans_help_center_titles() -> None:
-    clean = UbiquitiPack._clean_title
-    en_dash = chr(0x2013)
-    title = f"UniFi - Device Adoption {en_dash} Ubiquiti Help Center"
-    assert clean(title) == "UniFi - Device Adoption"
-    assert clean("Layer 3 Routing - Ubiquiti Help Center") == "Layer 3 Routing"
-    assert clean("Already Clean Title") == "Already Clean Title"
 
 
 def test_local_only_load_skips_url_fetch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

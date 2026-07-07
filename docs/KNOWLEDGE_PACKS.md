@@ -12,7 +12,7 @@ Mnemosyne *explains* it.
 ## Anatomy of a pack
 
 ```
-src/mnemosyne/packs/ubiquiti/
+src/mnemosyne/packs/general/
 ├── __init__.py
 ├── manifest.yaml     # declarative config: name, models, chunking, sources, persona
 ├── pack.py           # KnowledgePack subclass — loaders + any custom normalization
@@ -53,14 +53,16 @@ system_prompt: >
 
 Most packs need no Python at all — the base class reads the manifest and the `sources/`
 list. Override `pack.py` only when a corpus needs custom handling (a bespoke loader, a
-cleanup pass, scraping logic).
+cleanup pass, scraping logic). The shipped `general` pack keeps this minimal: no override,
+just the subclass for discovery and as an extension point:
 
 ```python
 from mnemosyne.packs.base import KnowledgePack
 
-class UbiquitiPack(KnowledgePack):
-    """Ubiquiti / UniFi networking expert."""
-    # Inherits manifest-driven loading. Override load() for custom behavior.
+class GeneralPack(KnowledgePack):
+    """A curated, growing corpus for grounding decisions (how to decide, not how tech works)."""
+    # Inherits manifest-driven loading as-is. Override load() only if a corpus later needs
+    # custom preprocessing.
 ```
 
 ### `sources/`
@@ -79,7 +81,7 @@ The corpus. Three ways to provide it, mixable:
 ```yaml
 # sources/sources.yaml
 urls:
-  - https://help.ui.com/hc/en-us/articles/<id>   # title captured for citations
+  - https://docs.example.com/articles/<id>   # title captured for citations
 local:
   - ./sources/unifi-switching-notes.md
 ```

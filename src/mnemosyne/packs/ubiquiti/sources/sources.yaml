@@ -1,61 +1,20 @@
-# Corpus for the Ubiquiti pack.
+# Corpus for the Ubiquiti / UniFi pack.
 #
-# Mnemosyne ships NO third-party documentation. This file lists *references* (public
-# Ubiquiti Help Center URLs) — the documents themselves are fetched at `ingest` time and
-# only the resulting FAISS index is written (to gitignored `knowledge/`); the article text
-# never enters version control. Only add URLs you have the right to use.
+# Mnemosyne ships NO third-party documentation. These primers are self-authored original
+# prose stating public, non-copyrightable UniFi facts (the controller / adoption / switching /
+# wireless model, plus security, RF, and operations), grounded in the official Ubiquiti Help
+# Center but copied from none of it. A fetched help.ui.com harvest was reviewed and declined
+# on licensing grounds (ADR-0026): Ubiquiti's Terms of Service expressly forbid reproducing
+# Help Center Content "in any way without the prior written permission of Ubiquiti", and the
+# only license granted is to *use* the Services to manage your own gear, not to copy the docs.
+# The pack stays curated-only, mirroring the pfSense decline (ADR-0025).
 #
-# To extend: add more URLs below, or drop local .md/.txt/.html/.pdf files into this
-# `sources/` directory (they're auto-discovered).
-#
-# A doc you can fetch yourself but can't commit here (a blocked host, or anything you don't
-# want in git even transiently) does NOT belong under this `sources/` directory or in the
-# `local:` list below (both are git-tracked); stage it instead via MNEMOSYNE_STAGING_DIR
-# (`<dir>/ubiquiti/`); see ADR-0016.
-
-# Local files (relative to the pack directory). Files in this `sources/` folder are also
-# picked up automatically. All are self-authored primers: the seed note covers the core model
-# (controller/adoption/switching/wireless), and the three `unifi-*` primers add original prose
-# on security, RF, and operations to give the corpus real multi-document depth (see ADR-0012).
+# To extend: add more URLs under `urls:`, or drop local .md/.txt/.html/.pdf files into this
+# `sources/` directory (they are auto-discovered). Only add URLs you have the right to use.
 local:
   - ./sources/seed-unifi-concepts.md
   - ./sources/unifi-network-security.md
   - ./sources/unifi-wifi-rf.md
   - ./sources/unifi-operations.md
 
-# Public Ubiquiti Help Center articles (help.ui.com), curated to cover the UniFi expert
-# domain: setup & adoption, switching/VLANs, routing, firewall/security, and wireless.
-urls:
-  # Setup & adoption
-  - https://help.ui.com/hc/en-us/articles/4416276882327-How-to-Set-Up-UniFi
-  - https://help.ui.com/hc/en-us/articles/360012622613-UniFi-Device-Adoption
-  - https://help.ui.com/hc/en-us/articles/204909754-Remote-Adoption-Layer-3
-  # Switching & VLANs
-  - https://help.ui.com/hc/en-us/articles/33402927617047-UniFi-Switch-Settings
-  - https://help.ui.com/hc/en-us/articles/9761080275607-Creating-Virtual-Networks-VLANs
-  - https://help.ui.com/hc/en-us/articles/26136855808919-Switch-Port-VLAN-Assignment-Trunk-Access-Ports
-  - https://help.ui.com/hc/en-us/articles/9592924981911-Virtual-Network-VLAN-Troubleshooting
-  - https://help.ui.com/hc/en-us/articles/23352709241495-UniFi-Switches-and-Access-Control-Lists-ACLs
-  # Routing, firewall & security
-  - https://help.ui.com/hc/en-us/articles/360042281174-Layer-3-Routing
-  - https://help.ui.com/hc/en-us/articles/27699646208279-UniFi-Gateway-Advanced-Firewall-Rules
-  - https://help.ui.com/hc/en-us/articles/115003173168-Zone-Based-Firewalls-in-UniFi
-  - https://help.ui.com/hc/en-us/articles/218506997-Required-Ports-Reference
-  # Wireless & isolation
-  - https://help.ui.com/hc/en-us/articles/23948850278295-Best-Practices-Guest-WiFi
-  - https://help.ui.com/hc/en-us/articles/18965560820247-Implementing-Network-and-Client-Isolation-in-UniFi
-  # VPN (remote access & site-to-site)
-  - https://help.ui.com/hc/en-us/articles/7951513517079-UniFi-Gateway-Introduction-to-VPNs
-  - https://help.ui.com/hc/en-us/articles/115005445768-UniFi-Gateway-WireGuard-VPN-Server
-  - https://help.ui.com/hc/en-us/articles/5246403561495-UniFi-Gateway-Teleport-VPN
-  # Console management & lifecycle
-  - https://help.ui.com/hc/en-us/articles/360008976393-Backups-and-Migration-in-UniFi
-  - https://help.ui.com/hc/en-us/articles/205143490-How-to-Reset-UniFi-Devices-to-Factory-Defaults
-  # DNS & DHCP services
-  - https://help.ui.com/hc/en-us/articles/15179064940439-UniFi-DNS-Records-and-Local-Hostnames
-  - https://help.ui.com/hc/en-us/articles/17484948645015-UniFi-DNS-Troubleshooting-Guide
-  # Advanced WiFi
-  - https://help.ui.com/hc/en-us/articles/221029967-Optimizing-WiFi-Connectivity-and-Reducing-Latency
-  - https://help.ui.com/hc/en-us/articles/360012947634-Maximizing-Wireless-Speeds
-  # Traffic management
-  - https://help.ui.com/hc/en-us/articles/204911354-UniFi-QoS-and-Traffic-Shaping
+urls: []

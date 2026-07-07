@@ -54,12 +54,14 @@ Mnemosyne can *explain*. Knowledge packs expand in lockstep with Argus vendor pa
       4 self-authored primers (security, WiFi/RF, operations) / 42 chunks and an eval set of 19
       questions at 0.95 retrieval hit-rate
       ([ADR-0012](architecture/adr/0012-resweep-against-matured-ubiquiti-corpus.md),
-      [ADR-0014](architecture/adr/0014-expand-ubiquiti-question-set.md)); the first-party harvest
-      of official UniFi docs is underway: 14 Help Center pages, plus batch 1's 9 articles landed
-      against a measured dilution bar
-      ([ADR-0023](architecture/adr/0023-help-center-harvest-batch-1.md)). The old "help.ui.com
-      403s from some networks" caveat was client-header-dependent, not network-dependent: bare
-      HTTP clients get a CDN challenge; the shipped loader's browser-like headers pass.
+      [ADR-0014](architecture/adr/0014-expand-ubiquiti-question-set.md)). A fetched harvest of
+      24 official Help Center pages was built and served
+      ([ADR-0023](architecture/adr/0023-help-center-harvest-batch-1.md)), then reviewed for
+      licensing and declined: Ubiquiti's Terms of Service expressly forbid reproducing Help
+      Center Content without written permission, the same disposition as the Netgate decline
+      ([ADR-0025](architecture/adr/0025-netgate-docs-harvest-declined-curated-only.md)). The
+      ubiquiti pack reverts to curated-only, the 4 primers and 19 questions above
+      ([ADR-0026](architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)).
 - [ ] Second vendor pack proving the out-of-tree entry-point path.
 - [ ] Shared vendor list / cross-links with Argus so the two stay in step.
 - [ ] Ship the UniFi/Ubiquiti vendor as one distribution advertising both `argus.vendor_packs`
