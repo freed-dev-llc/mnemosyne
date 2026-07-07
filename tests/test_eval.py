@@ -162,8 +162,9 @@ def test_run_retrieval_eval_uses_injected_retrieve_offline() -> None:
 
 def test_load_questions_reads_the_shipped_ubiquiti_set() -> None:
     questions = load_questions("ubiquiti")
-    # 10 seed questions + 9 primer questions (ADR-0014); a range guards against a truncated load
-    # or accidental duplication without going stale on every new question.
+    # 10 seed questions + 9 primer questions (ADR-0014) + 9 VPN/DNS/QoS re-grow questions
+    # (ADR-0020/ADR-0026); a range guards against a truncated load or accidental duplication
+    # without going stale on every new question.
     assert 19 <= len(questions) <= 40
     assert all(isinstance(q, EvalQuestion) for q in questions)
 
@@ -1057,19 +1058,19 @@ def test_load_questions_rejects_explicit_curated(
 
 
 def test_shipped_default_population_is_unchanged_by_adr_0020() -> None:
-    # The CI gate's population: exactly the 19 curated questions, none tagged.
+    # The CI gate's population: exactly the 28 curated questions, none tagged.
     questions = load_questions("ubiquiti")
-    assert len(questions) == 19
+    assert len(questions) == 28
     assert all(q.corpus == "curated" for q in questions)
 
 
 def test_ubiquiti_ships_no_fetched_questions_after_the_harvest_decline() -> None:
     # The fetched help.ui.com harvest was declined on licensing grounds (ADR-0026), so the pack
-    # is curated-only: even with include_fetched=True the shipped set is the 19 curated
+    # is curated-only: even with include_fetched=True the shipped set is the 28 curated
     # questions and nothing is tagged `corpus: fetched`. The generic `corpus`/`--include-fetched`
     # loader machinery (ADR-0020) is exercised by the synthetic `demo` fixture below, not here.
     all_questions = load_questions("ubiquiti", include_fetched=True)
-    assert len(all_questions) == 19
+    assert len(all_questions) == 28
     assert all(q.corpus == "curated" for q in all_questions)
 
 

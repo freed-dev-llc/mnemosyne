@@ -2,12 +2,12 @@
 #
 # Mnemosyne ships NO third-party documentation. These primers are self-authored original
 # prose stating public, non-copyrightable UniFi facts (the controller / adoption / switching /
-# wireless model, plus security, RF, and operations), grounded in the official Ubiquiti Help
-# Center but copied from none of it. A fetched help.ui.com harvest was reviewed and declined
-# on licensing grounds (ADR-0026): Ubiquiti's Terms of Service expressly forbid reproducing
-# Help Center Content "in any way without the prior written permission of Ubiquiti", and the
-# only license granted is to *use* the Services to manage your own gear, not to copy the docs.
-# The pack stays curated-only, mirroring the pfSense decline (ADR-0025).
+# wireless model, plus security, RF, operations, VPN, DNS, and QoS/traffic), grounded in the
+# official Ubiquiti Help Center but copied from none of it. A fetched help.ui.com harvest was
+# reviewed and declined on licensing grounds (ADR-0026): Ubiquiti's Terms of Service expressly
+# forbid reproducing Help Center Content "in any way without the prior written permission of
+# Ubiquiti", and the only license granted is to *use* the Services to manage your own gear, not
+# to copy the docs. The pack stays curated-only, mirroring the pfSense decline (ADR-0025).
 #
 # To extend: add more URLs under `urls:`, or drop local .md/.txt/.html/.pdf files into this
 # `sources/` directory (they are auto-discovered). Only add URLs you have the right to use.
@@ -16,5 +16,8 @@ local:
   - ./sources/unifi-network-security.md
   - ./sources/unifi-wifi-rf.md
   - ./sources/unifi-operations.md
+  - ./sources/unifi-vpn.md
+  - ./sources/unifi-dns.md
+  - ./sources/unifi-qos-traffic.md
 
 urls: []
