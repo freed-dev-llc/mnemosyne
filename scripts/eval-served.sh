@@ -2,10 +2,13 @@
 #
 # Append one served-corpus eval snapshot to the history file (report-only; ADR-0019).
 #
-# Runs `mnemosyne eval <pack> --json` against the pack's canonical built index (run on
-# the serving host, that IS the served index) and appends the JSON line to
-# knowledge/eval-history/<pack>.jsonl. The history dir lives under gitignored knowledge/
-# but outside any pack's index dir, so a re-ingest cannot clobber it.
+# Runs `mnemosyne eval <pack> --json --include-fetched` against the pack's canonical
+# built index (run on the serving host, that IS the served index) and appends the JSON
+# line to knowledge/eval-history/<pack>.jsonl. The history dir lives under gitignored
+# knowledge/ but outside any pack's index dir, so a re-ingest cannot clobber it.
+# --include-fetched (ADR-0020) scores the fetched-coverage questions alongside the
+# curated ones, so the series measures coverage plus survival; per-result `corpus` tags
+# and the `total` field keep old (19-question) and new lines distinguishable.
 #
 # Run it manually after every production re-ingest (that is when the number can move),
 # and/or on the weekly timer (deploy/mnemosyne-eval.timer). See deploy/README.md.
@@ -29,7 +32,7 @@ cd "$(dirname "$0")/.."
 HISTORY_DIR="${MNEMOSYNE_HISTORY_DIR:-knowledge/eval-history}"
 HISTORY_FILE="$HISTORY_DIR/$PACK.jsonl"
 
-line=$("$MNEMOSYNE_BIN" eval "$PACK" --json)
+line=$("$MNEMOSYNE_BIN" eval "$PACK" --json --include-fetched)
 
 mkdir -p "$HISTORY_DIR"
 printf '%s\n' "$line" >>"$HISTORY_FILE"
