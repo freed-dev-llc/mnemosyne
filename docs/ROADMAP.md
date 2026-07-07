@@ -68,7 +68,8 @@ Mnemosyne can *explain*. Knowledge packs expand in lockstep with Argus vendor pa
       to llama-embed-nemotron-8b was evaluated and rejected, see
       [ADR-0018](architecture/adr/0018-nemotron-embedder-evaluation.md).
 - [x] Served-corpus eval visibility: `eval-gate` measures the local-only corpus, so it overstates
-      what a running server retrieves (served ubiquiti is ~0.84, not the 0.95 CI reports). Shipped
+      what a running server retrieves (after the ADR-0022 seed repair: 19/19 local vs 30/32 on a
+      scratch full ingest, pending the production re-ingest). Shipped
       as a report-only served eval: `mnemosyne eval <pack> --json` plus `scripts/eval-served.sh`
       append per-run snapshots to a gitignored history file, and an opt-in weekly systemd timer
       keeps them coming; see [ADR-0019](architecture/adr/0019-served-corpus-eval-report-only.md).

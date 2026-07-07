@@ -50,6 +50,16 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Fixed
 
+- The `adoption-loop` eval question no longer misses by construction
+  ([ADR-0022](docs/architecture/adr/0022-seed-corpus-boundary-repair.md)): the seed
+  primer's adoption-loop sentence now names the factory-reset remedy inline (one
+  contiguous two-line rewrite in `seed-unifi-concepts.md`; the question and its expected
+  strings are byte-identical), so the fact fits inside one 500/150 chunk instead of
+  splitting across a boundary, the root cause on record since ADR-0011. Scratch-verified
+  per question on the Spark: local-only 19/19 with all 18 previously-hitting questions
+  re-verified, full ingest 30/32 with fetched coverage 13/13 unchanged (the two remaining
+  misses are the known served rank problems, ADR-0021). Production re-ingest follows
+  post-merge under the backup/restore protocol recorded in the ADR.
 - Docs accuracy after the 2026-07-04 history re-creation: six accepted ADRs (0010, 0012,
   0013, 0014, 0016, 0017) now carry a dated editorial note that their issue/PR numbers use
   pre-rewrite numbering and no longer resolve (decision text untouched; ADR-0018's

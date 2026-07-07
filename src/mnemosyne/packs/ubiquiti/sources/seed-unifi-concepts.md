@@ -21,7 +21,8 @@ on a self-hosted host, or be reached via remote management. Understanding this s
 controller's management. A device must be able to *reach* the controller (Layer 3
 reachability and the correct inform URL) before it can be adopted. The typical lifecycle a
 device reports is: **Pending Adoption → Adopting → Provisioning → Connected**. If a device
-oscillates between states (an "adoption loop"), the usual causes are:
+oscillates between states (an "adoption loop", most often cleared by a factory reset or a
+corrected inform URL), the usual causes are:
 
 - The device cannot resolve or reach the controller's **inform** address.
 - A previous controller's credentials are still on the device (it needs a factory reset, or
