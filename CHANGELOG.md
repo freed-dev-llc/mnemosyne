@@ -8,6 +8,16 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- [ADR-0021](docs/architecture/adr/0021-hybrid-retrieval-evaluation.md): re-measured hybrid
+  BM25+dense retrieval on the 32-question instrument (ADR-0020) under a pre-registered
+  method (pinned BM25 parameters, blend, alpha grid, stratified dev/held-out split with a
+  fixed seed, dev-only config selection, one held-out evaluation) and decided not to
+  productize: the dev table was flat at baseline across the whole grid, the dev-chosen
+  config regressed both the held-out subset (13/15 -> 12/15) and the full served set
+  (29/32 -> 28/32), and ADR-0017's prototype lift (0.79 -> 0.84) did not reproduce under
+  the pinned normalization and tokenizer. A decision record only; the shipped retrieval
+  path is unchanged. Per-miss rank diagnostics and the two unscored probe outcomes are
+  recorded for future corpus and question-set work, with revisit triggers.
 - Fetched-coverage eval questions with a per-question `corpus` tag
   ([ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md)): 13 ubiquiti
   questions authored from the served index's fetched Help Center chunks under an
