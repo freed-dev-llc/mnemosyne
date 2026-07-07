@@ -66,6 +66,53 @@ keeps serving the old version until it is restarted.
 Defaults target the Spark box; override with the `SPARK_HOST`, `SPARK_REPO`, `SPARK_ENV`,
 `MNEMOSYNE_SERVICE`, and `MNEMOSYNE_HEALTH_URL` environment variables for another host.
 
+## Served-corpus eval (report-only)
+
+CI's `eval-gate` scores a deterministic local-only corpus, which overstates what a running
+server retrieves (ubiquiti: 0.95 local-only vs ~0.84 served; see
+[ADR-0017](../docs/architecture/adr/0017-retrieval-quality-known-limitations.md)). Running
+the eval on the serving host scores the live index the service answers from, and `--json`
+records which index that was:
+
+```bash
+scripts/eval-served.sh ubiquiti   # append one snapshot to knowledge/eval-history/ubiquiti.jsonl
+```
+
+The script runs `mnemosyne eval <pack> --json` (one JSON line: the scores plus provenance,
+so index chunk counts, effective `score_floor` / `faiss_normalize`, installed version, and
+a UTC timestamp), appends it to `knowledge/eval-history/<pack>.jsonl` (gitignored, outside
+any pack's index directory so a re-ingest cannot clobber it), and echoes the hit rate. It
+is report-only and exits 0 on every completed run; see
+[ADR-0019](../docs/architecture/adr/0019-served-corpus-eval-report-only.md).
+
+Run it **manually after every production re-ingest** (that is when the number can move),
+and on a schedule to catch slow drift. The weekly timer is opt-in, same
+adjust-paths-then-install pattern as `mnemosyne-http.service`:
+
+```bash
+sudo cp deploy/mnemosyne-eval.service deploy/mnemosyne-eval.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now mnemosyne-eval.timer
+systemctl list-timers mnemosyne-eval.timer    # next scheduled run
+```
+
+Read the history with `jq`:
+
+```bash
+jq -r '[.timestamp, .mnemosyne_version, .index.chunks, .hit_rate] | @tsv' \
+  knowledge/eval-history/ubiquiti.jsonl
+```
+
+`index.chunks` says which index a line measured (42 = local-only seed corpus, ~294 =
+fetched-inclusive served index), so local test runs and production snapshots in the same
+file stay distinguishable.
+
+**The caveat when reading the number:** the 19 ubiquiti questions are written against the
+curated seed corpus, so this eval measures *curated-fact survival under fetched-content
+dilution*. A drop means fetched chunks are displacing the curated answer chunks. It does
+not measure fetched-content coverage (how well the fetched Help Center pages themselves
+are retrieved); that needs question-set expansion, which stays future work (ADR-0019).
+
 ## Reachability and security
 
 `mnemosyne-http` has **no authentication** and is meant to be called server-to-server on a

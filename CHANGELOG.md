@@ -8,6 +8,17 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Served-corpus eval, report-only (`mnemosyne eval <pack> --json`;
+  [ADR-0019](docs/architecture/adr/0019-served-corpus-eval-report-only.md)): one
+  machine-readable JSON line per run carrying the scores plus the provenance that says which
+  index was measured (index meta with the chunk-count discriminator, effective `score_floor` /
+  `faiss_normalize`, installed version, UTC timestamp; no host coordinates).
+  `scripts/eval-served.sh` appends it to gitignored `knowledge/eval-history/<pack>.jsonl`, and
+  opt-in systemd templates (`deploy/mnemosyne-eval.service` + `.timer`) run it weekly. Exit 0
+  on every completed run, and retrieval-only: `--json` refuses `--faithfulness` and `--gate`
+  (a posture clash is an operational error, exit 1, before any eval runs). Documented in
+  `deploy/README.md`, including the caveat that the 19 ubiquiti questions measure curated-fact
+  survival under fetched-content dilution, not fetched-content coverage.
 - [ADR-0018](docs/architecture/adr/0018-nemotron-embedder-evaluation.md): evaluated
   `llama-embed-nemotron-8b` as an embedder candidate and decided not to adopt (the community
   GGUF produces no embeddings via Ollama, and the research-only license blocks production
