@@ -11,5 +11,8 @@ local:
   - ./sources/pfsense-core-concepts.md
   - ./sources/pfsense-firewall-rules.md
   - ./sources/pfsense-nat-vpn.md
+  - ./sources/pfsense-high-availability.md
+  - ./sources/pfsense-packages.md
+  - ./sources/pfsense-services.md
 
 urls: []
