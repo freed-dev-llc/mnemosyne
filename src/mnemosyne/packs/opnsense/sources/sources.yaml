@@ -1,0 +1,17 @@
+# Corpus for the OPNsense pack.
+#
+# Mnemosyne ships NO third-party documentation. These primers are self-authored original
+# prose stating public, non-copyrightable OPNsense facts (default addresses, plugin names,
+# menu paths, protocol names), grounded in the official OPNsense documentation but copied
+# from none of it. The OPNsense docs and core are both BSD-2-Clause (permissive), which
+# would allow a fetched harvest later; the pack stays curated-only for consistency with the
+# pfsense and ubiquiti packs (ADR-0027).
+#
+# To extend: add more URLs under `urls:`, or drop local .md/.txt/.html/.pdf files into this
+# `sources/` directory (they are auto-discovered).
+local:
+  - ./sources/opnsense-core-concepts.md
+  - ./sources/opnsense-plugins.md
+  - ./sources/opnsense-firewall-ids.md
+
+urls: []
