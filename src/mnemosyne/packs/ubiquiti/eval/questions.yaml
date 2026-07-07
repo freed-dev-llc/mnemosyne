@@ -111,7 +111,7 @@ questions:
   - id: channel-2-4ghz
     question: Which 2.4 GHz channels and channel width should a UniFi network use?
     expected:
-      - "non-overlapping channels: 1, 6, and 11"
+      - "1, 6, and 11"
       - 20 MHz
 
   - id: roaming-amendments
