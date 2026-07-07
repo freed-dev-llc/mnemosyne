@@ -1037,7 +1037,7 @@ def test_shipped_default_population_is_unchanged_by_adr_0020() -> None:
 
 def test_shipped_fetched_questions_match_the_phase_a_batch() -> None:
     all_questions = load_questions("ubiquiti", include_fetched=True)
-    assert len(all_questions) == 32
+    assert len(all_questions) == 41
     assert [q.id for q in all_questions if q.corpus == "fetched"] == [
         "dhcp-option-43",
         "l3-adoption-port",
@@ -1052,6 +1052,15 @@ def test_shipped_fetched_questions_match_the_phase_a_batch() -> None:
         "zone-matrix",
         "l3-switch-routing",
         "guest-client-isolation",
+        "vpn-site-magic",
+        "wireguard-port",
+        "teleport-invite",
+        "backup-file-ext",
+        "reset-hold-time",
+        "dns-forward-domain",
+        "dns-port",
+        "channel-ai",
+        "qos-dscp",
     ]
 
 
@@ -1066,7 +1075,7 @@ def test_score_copies_corpus_onto_results() -> None:
 
 def test_run_retrieval_eval_include_fetched_widens_the_population_offline() -> None:
     report = run_retrieval_eval("ubiquiti", k=5, retrieve=lambda q, k: [], include_fetched=True)
-    assert report.total == 32
+    assert report.total == 41
 
 
 def test_eval_include_fetched_refuses_gate() -> None:
