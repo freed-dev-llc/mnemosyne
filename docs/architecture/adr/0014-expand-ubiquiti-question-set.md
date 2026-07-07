@@ -6,6 +6,10 @@ Date: 2026-06-29
 
 Accepted
 
+Editorial note (2026-07-07): issue/PR numbers cited in this ADR use pre-rewrite
+numbering; the repository history was re-created on 2026-07-04, so those references no
+longer resolve.
+
 Follows up [ADR-0012](0012-resweep-against-matured-ubiquiti-corpus.md) and closes issue #41. Relies
 on [ADR-0013](0013-ingest-survives-unembeddable-chunk.md) (issue #40) to run the full sweep grid.
 

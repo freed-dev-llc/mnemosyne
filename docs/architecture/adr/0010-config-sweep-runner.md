@@ -6,6 +6,10 @@ Date: 2026-06-28
 
 Accepted
 
+Editorial note (2026-07-07): issue/PR numbers cited in this ADR use pre-rewrite
+numbering; the repository history was re-created on 2026-07-04, so those references no
+longer resolve.
+
 ## Context
 
 Step 4a (ADR is this file's predecessor work, issue #24) shipped the pure, offline sweep core:

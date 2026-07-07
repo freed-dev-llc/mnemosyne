@@ -6,6 +6,10 @@ Date: 2026-07-04
 
 Accepted
 
+Editorial note (2026-07-07): issue/PR numbers cited in this ADR use pre-rewrite
+numbering; the repository history was re-created on 2026-07-04, so those references no
+longer resolve.
+
 ## Context
 
 The `eval-gate` (ADR-0008) scores retrieval against the deterministic local-only corpus
