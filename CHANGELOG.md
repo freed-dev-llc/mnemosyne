@@ -8,6 +8,18 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- pfSense pack R2 curated coverage expansion
+  ([ADR-0025](docs/architecture/adr/0025-netgate-docs-harvest-declined-curated-only.md),
+  [ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md)): 3 new self-authored
+  primers (aliases and advanced rules; multi-WAN and traffic shaping; diagnostics and backup)
+  and 8 identifier-anchored curated questions, growing the pfSense set from 17 to 25 and
+  clearing the 0.9 retrieval gate at 25/25 on a local-only scratch index (bge-m3, 500/150; 6
+  docs / 22 chunks to 9 docs / 37 chunks). Recovers the Step-12/13 deferred `aliases` /
+  `floating-rules` pair: the new aliases-and-advanced-rules primer gives those facts a
+  co-located chunk that now reaches k=5. A fetched Netgate documentation harvest was reviewed
+  and declined on licensing grounds (ADR-0025): the current docs carry an all-rights-reserved
+  notice with no reuse grant, so the pack stays curated-only (`sources.yaml urls: []`
+  unchanged).
 - pfSense pack R1 curated coverage expansion
   ([ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md),
   [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md)): 3 new self-authored
