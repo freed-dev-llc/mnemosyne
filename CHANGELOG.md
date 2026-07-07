@@ -6,6 +6,24 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+### Added
+
+- Help Center harvest, batch 1 completion — the deferred `Maximizing-Wireless-Speeds`
+  article ([ADR-0023](docs/architecture/adr/0023-help-center-harvest-batch-1.md)): held out
+  of batch 1 because it displaced the `channel-2-4ghz` primer chunk from top-5, it now lands
+  together with the ground-truth wording fix that disposition called for. The
+  `channel-2-4ghz` question's first expected item is shortened to `"1, 6, and 11"` — the
+  common factual substring of both the local RF primer ("non-overlapping channels: 1, 6, and
+  11") and the fetched article ("channels 1, 6, and 11") — so the fact counts regardless of
+  which source serves it, without an OR-group. Same ground-truth treatment the
+  `trunk-vs-access` question received
+  ([ADR-0006](docs/architecture/adr/0006-eval-data-contract.md) OR-group precedent) when a
+  fetched page answered correctly in different words. Article text is fetched at ingest and
+  never enters git. Scratch-verified per question on the Spark: local-only 19/19, full
+  expanded 30/32 with zero flips (the two remaining misses are the known served rank
+  problems, `port-profiles` and `poe-cycle`, ADR-0021). Production re-ingest follows
+  post-merge under the backup/restore protocol.
+
 ## [0.5.0] - 2026-07-07
 
 ### Added
