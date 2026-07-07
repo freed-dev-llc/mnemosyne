@@ -8,6 +8,17 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Ubiquiti pack curated re-grow ([ADR-0014](docs/architecture/adr/0014-expand-ubiquiti-question-set.md),
+  [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md),
+  [ADR-0026](docs/architecture/adr/0026-ubiquiti-help-center-harvest-declined-curated-only.md)):
+  3 new self-authored primers (VPN and remote access: Site Magic, WireGuard, Teleport; DNS,
+  resolution, and multicast; QoS and traffic management) and 9 identifier-anchored curated
+  questions, growing the ubiquiti set from 19 to 28 and clearing the 0.9 retrieval gate at
+  28/28 on a local-only scratch index (bge-m3, 500/150; 4 docs / 43 chunks to 7 docs / 65
+  chunks). Restores VPN, DNS, and QoS coverage the declined help.ui.com harvest used to serve,
+  without reproducing any of it: every fact is public and non-copyrightable (product names,
+  IANA/IEEE numbers, DNS record types) in original prose. Curated-only, as before
+  (`sources.yaml urls: []` unchanged).
 - pfSense pack R2 curated coverage expansion
   ([ADR-0025](docs/architecture/adr/0025-netgate-docs-harvest-declined-curated-only.md),
   [ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md)): 3 new self-authored

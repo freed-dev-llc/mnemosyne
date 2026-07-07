@@ -9,7 +9,8 @@
 # (e.g. "native (untagged)" vs "untagged network" for the same fact). Author questions only
 # from text that is actually in the corpus; if a fact isn't there, it doesn't belong here. The
 # first block covers the seed (core model); the second covers the security, RF, and operations
-# primers (added in ADR-0014, issue #41).
+# primers (added in ADR-0014, issue #41); the third covers the VPN, DNS, and QoS primers (the
+# curated re-grow following the harvest decline, ADR-0026, under the ADR-0020 contract).
 #
 # All questions are curated: their ground truth lives in the self-authored primers. A fetched
 # help.ui.com harvest was reviewed and declined on licensing grounds (ADR-0026), so this pack
@@ -143,3 +144,76 @@ questions:
     expected:
       - controller backup
       - read the release notes
+
+  # --- Questions over the VPN, DNS, and QoS primers (curated re-grow; ADR-0020 contract,
+  # ADR-0026 curated-only disposition). Every expected item is an identifier drawn verbatim
+  # from its primer and co-located in one chunk (ADR-0006, ADR-0022). ---
+
+  - id: vpn-site-magic
+    question: What is UniFi Site Magic and what does it automate?
+    expected:
+      - Site Magic
+      - SD-WAN
+      - site-to-site
+    note: Automatic site-to-site SD-WAN meshing UniFi gateways across locations.
+
+  - id: wireguard-port
+    question: What transport and default port does the UniFi WireGuard VPN server use?
+    expected:
+      - WireGuard
+      - UDP
+      - "51820"
+    note: WireGuard's default listen port (a WireGuard fact, not a Ubiquiti one).
+
+  - id: teleport-vpn
+    question: How does UniFi Teleport grant remote access without manual client configuration?
+    expected:
+      - Teleport
+      - invite
+      - WireGuard
+    note: Zero-config remote access; a one-click invite link, WireGuard under the hood.
+
+  - id: dns-port
+    question: What port does DNS use on a UniFi gateway?
+    expected:
+      - DNS
+      - port 53
+    note: The standard DNS port (UDP/TCP), IANA-assigned.
+
+  - id: dns-record-types
+    question: What local DNS record types can you create on a UniFi gateway?
+    expected:
+      - A record
+      - CNAME
+      - SRV
+    note: Local DNS records for internal name resolution.
+
+  - id: mdns-across-vlans
+    question: How does UniFi let AirPlay and Chromecast discovery work across VLANs?
+    expected:
+      - mDNS
+      - "5353"
+      - VLAN
+    note: A multicast DNS (UDP 5353) reflector relays service discovery across segments.
+
+  - id: smart-queues
+    question: What does UniFi Smart Queues do and what algorithm backs it?
+    expected:
+      - Smart Queues
+      - fq_codel
+      - bufferbloat
+    note: fq_codel bufferbloat control; set the limits just below the ISP line rate.
+
+  - id: qos-dscp
+    question: How does UniFi mark packets for QoS prioritization?
+    expected:
+      - DSCP
+      - IP Precedence
+    note: DSCP / IP Precedence marking.
+
+  - id: wmm-wireless-qos
+    question: What standard provides QoS prioritization over WiFi in UniFi?
+    expected:
+      - WMM
+      - 802.11e
+    note: WiFi Multimedia, the 802.11e wireless QoS standard.
