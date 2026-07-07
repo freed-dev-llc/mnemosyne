@@ -3,8 +3,8 @@
 # Ground truth = expected substrings (see ADR-0006), each drawn verbatim from a local source
 # file in sources/. A question "hits" iff EVERY string in `expected` appears (case-insensitive)
 # in the concatenated top-k retrieved chunks. Author questions only from text that is actually
-# in the corpus. All questions are curated (local ground truth); a `corpus: fetched` block for
-# fetched Netgate pages is a later roadmap step (ADR-0020 pattern).
+# in the corpus. All questions are curated (local ground truth); the pfSense pack stays
+# curated-only (ADR-0025), so no `corpus: fetched` block exists here.
 questions:
   # --- Core concepts (pfsense-core-concepts.md) ---
   - id: pf-platform
@@ -125,3 +125,61 @@ questions:
     expected:
       - dnsmasq
     note: The DNS Forwarder is dnsmasq.
+
+  # --- Aliases and advanced rules (pfsense-aliases-advanced-rules.md) ---
+  - id: aliases
+    question: What is a pfSense alias and which object types can it hold?
+    expected:
+      - alias
+      - host
+      - network
+      - port
+    note: Firewall > Aliases; host, network, port, and URL Table alias types.
+
+  - id: floating-rules
+    question: What are floating rules in pfSense and how do they differ from per-interface rules?
+    expected:
+      - floating
+      - quick
+    note: Floating tab; a floating rule can match multiple interfaces/directions; quick = first-match.
+
+  # --- Multi-WAN and traffic shaping (pfsense-multiwan-traffic.md) ---
+  - id: multiwan-gateway-groups
+    question: How do you set up multi-WAN failover in pfSense?
+    expected:
+      - gateway group
+      - tier
+    note: System > Routing > Gateway Groups; tiers give failover versus load balancing.
+
+  - id: gateway-monitoring
+    question: What does pfSense use to monitor a gateway and detect when a WAN is down?
+    expected:
+      - dpinger
+    note: The dpinger daemon pings a monitor IP and marks the gateway down.
+
+  - id: traffic-shaping-altq
+    question: What framework does pfSense traffic shaping use to queue and prioritize traffic?
+    expected:
+      - ALTQ
+    note: ALTQ scheduler disciplines (HFSC, CBQ, PRIQ, FAIRQ, CODELQ).
+
+  - id: limiters-dummynet
+    question: How do you enforce a hard per-user bandwidth cap in pfSense?
+    expected:
+      - Limiter
+      - dummynet
+    note: Firewall > Traffic Shaper > Limiters, built on dummynet.
+
+  # --- Diagnostics and backup (pfsense-diagnostics-backup.md) ---
+  - id: packet-capture
+    question: How do you capture packets from the pfSense web interface?
+    expected:
+      - Packet Capture
+      - tcpdump
+    note: Diagnostics > Packet Capture, a tcpdump front end.
+
+  - id: config-backup
+    question: Which single file holds the entire pfSense configuration for backup and restore?
+    expected:
+      - config.xml
+    note: Diagnostics > Backup & Restore; the whole configuration is config.xml.

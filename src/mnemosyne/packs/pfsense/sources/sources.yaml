@@ -3,7 +3,8 @@
 # Mnemosyne ships NO third-party documentation. These primers are self-authored original
 # prose stating public, non-copyrightable pfSense facts (default addresses, mode names,
 # protocol names), grounded in the official Netgate documentation but copied from none of
-# it. Fetched Netgate URLs and their coverage questions are a later roadmap step.
+# it. A fetched Netgate harvest was reviewed and declined on licensing grounds (ADR-0025);
+# the pack stays curated-only.
 #
 # To extend: add more URLs under `urls:`, or drop local .md/.txt/.html/.pdf files into this
 # `sources/` directory (they are auto-discovered).
@@ -14,5 +15,8 @@ local:
   - ./sources/pfsense-high-availability.md
   - ./sources/pfsense-packages.md
   - ./sources/pfsense-services.md
+  - ./sources/pfsense-aliases-advanced-rules.md
+  - ./sources/pfsense-multiwan-traffic.md
+  - ./sources/pfsense-diagnostics-backup.md
 
 urls: []
