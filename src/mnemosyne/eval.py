@@ -22,15 +22,18 @@ Step 3). An answer with fewer than ``n`` tokens makes no bigram-level claim, so 
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
+from importlib import metadata
 from itertools import product
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from . import __version__
 from .config import Settings, get_settings
 from .packs.registry import get_pack
 from .pipeline import RagPipeline, ingest
@@ -168,6 +171,73 @@ def run_retrieval_eval(
     elif k is None:
         k = (settings or get_settings()).top_k
     return score(questions, retrieve, k, pack=pack)
+
+
+# --- Served-corpus eval JSON line (history-record provenance; see ADR-0019) ------------------
+
+# The installed distribution is the version of record for a history line: it is what the
+# serving host actually runs (the same number `sync-spark.sh` and `/health` report), where
+# the in-source `__version__` can lag between releases. The fallback keeps the serializer
+# total when the package is imported from a source tree without being installed.
+_DISTRIBUTION = "mnemosyne-rag"
+
+
+def _installed_version() -> str:
+    try:
+        return metadata.version(_DISTRIBUTION)
+    except metadata.PackageNotFoundError:
+        return __version__
+
+
+def serialize_retrieval_report(
+    report: EvalReport,
+    *,
+    meta: dict[str, Any] | None,
+    score_floor: float | None,
+    faiss_normalize: bool,
+    timestamp: str,
+) -> str:
+    """Render ``report`` as one machine-readable JSON line (pure, offline; see ADR-0019).
+
+    One line is one history record for the served-corpus eval, so alongside the scores it
+    carries the provenance needed to tell *which* index a run measured: ``index`` echoes the
+    pack's ``meta.json`` (``chunks`` is the served-vs-local discriminator, e.g. a
+    fetched-inclusive 294 vs the local-only 42) and is ``None`` when no metadata exists,
+    with each absent key an explicit ``None``; ``score_floor`` and ``faiss_normalize`` are
+    the effective retrieval settings, part of a run's identity. ``timestamp`` (a UTC
+    ISO-8601 string) is injected by the caller so this function stays pure and offline
+    tests control it. Deliberately absent: any host coordinate, because history lines get
+    pasted into issues. Retrieval-only by design: no faithfulness, no gate verdict (those
+    postures stay on their own flags).
+    """
+    index = (
+        None
+        if meta is None
+        else {
+            "documents": meta.get("documents"),
+            "chunks": meta.get("chunks"),
+            "embedding_model": meta.get("embedding_model"),
+            "chunk_size": meta.get("chunk_size"),
+            "chunk_overlap": meta.get("chunk_overlap"),
+        }
+    )
+    payload: dict[str, Any] = {
+        "timestamp": timestamp,
+        "mnemosyne_version": _installed_version(),
+        "pack": report.pack,
+        "k": report.k,
+        "total": report.total,
+        "hits": report.hits,
+        "hit_rate": report.hit_rate,
+        "score_floor": score_floor,
+        "faiss_normalize": faiss_normalize,
+        "index": index,
+        "results": [
+            {"id": r.id, "question": r.question, "hit": r.hit, "missing": r.missing}
+            for r in report.results
+        ],
+    }
+    return json.dumps(payload)
 
 
 # --- Answer faithfulness (generation-side metric; see ADR-0007) ----------------------------

@@ -7,6 +7,8 @@ The scorer takes an injected ``retrieve`` callable, so every test here feeds can
 from __future__ import annotations
 
 import dataclasses
+import json
+import re
 import tempfile
 from types import SimpleNamespace
 
@@ -21,6 +23,7 @@ from mnemosyne.eval import (
     GATE_OK,
     EvalQuestion,
     EvalReport,
+    EvalResult,
     SweepConfig,
     SweepReport,
     SweepRow,
@@ -37,6 +40,7 @@ from mnemosyne.eval import (
     score,
     score_faithfulness,
     score_sweep,
+    serialize_retrieval_report,
 )
 
 
@@ -760,3 +764,161 @@ def test_sweep_command_unknown_pack_exits_via_die() -> None:
     result = runner.invoke(app, ["sweep", "nonexistent-pack"])
     assert result.exit_code == 1
     assert "error:" in result.output
+
+
+# --- Served-corpus eval JSON line (--json; ADR-0019) -----------------------------------------
+
+# A meta.json as ingest writes it (pipeline.write_meta), with the fetched-inclusive chunk
+# count from ADR-0017 so the served-vs-local discriminator is what the tests pin.
+_META = {
+    "pack": "demo",
+    "documents": 18,
+    "chunks": 294,
+    "embedding_model": "bge-m3",
+    "chunk_size": 500,
+    "chunk_overlap": 150,
+    "normalize": False,
+}
+
+
+def _json_report() -> EvalReport:
+    results = [
+        EvalResult(id="q1", question="what is a vlan?", hit=True, missing=[]),
+        EvalResult(id="q2", question="what is poe?", hit=False, missing=["802.3af | 802.3at"]),
+    ]
+    return EvalReport(pack="demo", k=5, total=2, hits=1, hit_rate=0.5, results=results)
+
+
+def _serialize(**overrides) -> str:
+    kwargs = {
+        "meta": _META,
+        "score_floor": 1.0,
+        "faiss_normalize": False,
+        "timestamp": "2026-07-06T00:00:00Z",
+    }
+    kwargs.update(overrides)
+    return serialize_retrieval_report(_json_report(), **kwargs)
+
+
+def test_serialize_retrieval_report_is_one_valid_json_line() -> None:
+    line = _serialize()
+    assert "\n" not in line
+    assert json.loads(line)["pack"] == "demo"
+
+
+def test_serialize_retrieval_report_shape_and_injected_timestamp() -> None:
+    payload = json.loads(_serialize())
+    # The timestamp is the injected string, verbatim: the serializer owns no clock.
+    assert payload["timestamp"] == "2026-07-06T00:00:00Z"
+    assert (payload["k"], payload["total"], payload["hits"]) == (5, 2, 1)
+    assert payload["hit_rate"] == 0.5
+    # The index block is exactly the five meta.json discriminator fields; `normalize` is not
+    # echoed here (the effective setting is the top-level `faiss_normalize`).
+    assert payload["index"] == {
+        "documents": 18,
+        "chunks": 294,
+        "embedding_model": "bge-m3",
+        "chunk_size": 500,
+        "chunk_overlap": 150,
+    }
+    assert payload["results"] == [
+        {"id": "q1", "question": "what is a vlan?", "hit": True, "missing": []},
+        {"id": "q2", "question": "what is poe?", "hit": False, "missing": ["802.3af | 802.3at"]},
+    ]
+    # Installed distribution version (or the __version__ fallback): a non-empty string.
+    assert isinstance(payload["mnemosyne_version"], str)
+    assert payload["mnemosyne_version"]
+
+
+def test_serialize_retrieval_report_score_floor_none_vs_float() -> None:
+    assert json.loads(_serialize(score_floor=None))["score_floor"] is None
+    assert json.loads(_serialize(score_floor=0.75))["score_floor"] == 0.75
+
+
+def test_serialize_retrieval_report_missing_meta_is_explicit_null_index() -> None:
+    payload = json.loads(_serialize(meta=None))
+    assert payload["index"] is None
+    # The effective settings still land: they come from Settings, not from meta.json.
+    assert payload["score_floor"] == 1.0
+    assert payload["faiss_normalize"] is False
+
+
+def test_serialize_retrieval_report_partial_meta_keeps_every_index_key() -> None:
+    payload = json.loads(_serialize(meta={"chunks": 42}))
+    assert payload["index"] == {
+        "documents": None,
+        "chunks": 42,
+        "embedding_model": None,
+        "chunk_size": None,
+        "chunk_overlap": None,
+    }
+
+
+def test_serialize_retrieval_report_carries_no_host_coordinates() -> None:
+    # Locked JSON surface (ADR-0019): nothing host-shaped in a line that gets pasted into
+    # issues. The ollama host is deliberately not among the serialized settings.
+    line = _serialize().lower()
+    assert "ollama_host" not in line
+    assert "localhost" not in line
+    assert "11434" not in line
+
+
+def _patch_json_eval(monkeypatch: pytest.MonkeyPatch, *, meta: dict | None) -> None:
+    """Wire eval_cmd's --json collaborators to canned offline values (no Ollama, no index)."""
+    monkeypatch.setattr("mnemosyne.cli.run_retrieval_eval", lambda pack, k=None: _json_report())
+    monkeypatch.setattr("mnemosyne.index.read_meta", lambda path: meta)
+    monkeypatch.setattr(
+        "mnemosyne.cli.get_settings",
+        lambda: Settings(_env_file=None, score_floor=0.75, faiss_normalize=True),
+    )
+
+
+def test_eval_json_prints_exactly_one_parseable_line(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_json_eval(monkeypatch, meta=_META)
+    result = runner.invoke(app, ["eval", "demo", "--json"])
+    assert result.exit_code == 0
+    out = result.output.strip()
+    assert "\n" not in out  # no table, no summary line: stdout is exactly the JSON record
+    payload = json.loads(out)
+    assert payload["hit_rate"] == 0.5
+    assert payload["index"]["chunks"] == 294
+    # The effective settings come from the CLI boundary's get_settings().
+    assert payload["score_floor"] == 0.75
+    assert payload["faiss_normalize"] is True
+    # The CLI stamps a real UTC timestamp in the Z-suffixed second-resolution format.
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", payload["timestamp"])
+
+
+def test_eval_json_show_misses_is_ignored(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_json_eval(monkeypatch, meta=_META)
+    result = runner.invoke(app, ["eval", "demo", "--json", "--show-misses"])
+    assert result.exit_code == 0
+    # Misses are always serialized, so the flag adds nothing and breaks nothing.
+    payload = json.loads(result.output.strip())
+    assert payload["results"][1]["missing"] == ["802.3af | 802.3at"]
+
+
+def test_eval_json_missing_meta_serializes_null_index(monkeypatch: pytest.MonkeyPatch) -> None:
+    _patch_json_eval(monkeypatch, meta=None)
+    result = runner.invoke(app, ["eval", "demo", "--json"])
+    assert result.exit_code == 0
+    assert json.loads(result.output.strip())["index"] is None
+
+
+def test_eval_json_refuses_faithfulness() -> None:
+    # No monkeypatch: the posture check dies before any eval work happens.
+    result = runner.invoke(app, ["eval", "demo", "--json", "--faithfulness"])
+    assert result.exit_code == 1
+    assert "retrieval-only" in result.output
+
+
+def test_eval_json_refuses_gate() -> None:
+    result = runner.invoke(app, ["eval", "demo", "--json", "--gate"])
+    assert result.exit_code == 1
+    assert "report-only" in result.output
+
+
+def test_eval_json_refuses_min_hit_rate_because_it_implies_gate() -> None:
+    result = runner.invoke(app, ["eval", "demo", "--json", "--min-hit-rate", "0.5"])
+    assert result.exit_code == 1
+    assert "report-only" in result.output

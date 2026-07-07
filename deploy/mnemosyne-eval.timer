@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly Mnemosyne served-corpus eval snapshot
+Documentation=https://github.com/freed-dev-llc/mnemosyne/blob/main/deploy/README.md
+
+[Timer]
+# weekly = Mondays 00:00 local time. Persistent=true replays a run the host slept
+# through, so a box that was off at the tick still gets its snapshot.
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

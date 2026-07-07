@@ -1,0 +1,23 @@
+[Unit]
+Description=Mnemosyne served-corpus eval: append one report-only snapshot to the history
+Documentation=https://github.com/freed-dev-llc/mnemosyne/blob/main/deploy/README.md
+# The eval embeds its questions through Ollama, like any ask/search.
+After=network-online.target ollama.service
+Wants=network-online.target ollama.service
+
+[Service]
+Type=oneshot
+# Adjust User/Group and the paths below to your install (same pattern as
+# mnemosyne-http.service). WorkingDirectory must be the directory that holds the built
+# knowledge/ tree; the history lands under knowledge/eval-history/<pack>.jsonl, next to
+# (never inside) the pack indices.
+User=mnemosyne
+Group=mnemosyne
+WorkingDirectory=/opt/mnemosyne
+# The mnemosyne CLI the script invokes (an explicit venv path; systemd's PATH is minimal).
+Environment=MNEMOSYNE_BIN=/opt/mnemosyne/.venv/bin/mnemosyne
+Environment=MNEMOSYNE_OLLAMA_HOST=http://localhost:11434
+ExecStart=/opt/mnemosyne/scripts/eval-served.sh ubiquiti
+
+# No [Install] section: this unit is started by mnemosyne-eval.timer (or manually via
+# `systemctl start mnemosyne-eval`), not enabled at boot.

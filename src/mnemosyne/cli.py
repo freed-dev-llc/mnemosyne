@@ -7,6 +7,7 @@ queries it.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import NoReturn
 
 import typer
@@ -15,6 +16,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from . import __version__, service
+from . import index as index_mod
 from .config import get_settings
 from .eval import (
     DEFAULT_MIN_HIT_RATE,
@@ -27,6 +29,7 @@ from .eval import (
     run_faithfulness_eval,
     run_retrieval_eval,
     run_sweep,
+    serialize_retrieval_report,
 )
 from .packs.registry import get_pack
 from .pipeline import RagPipeline, Source, ingest
@@ -169,17 +172,48 @@ def eval_cmd(
         help="Floor as a fraction, e.g. 0.9 = 90%; passing it implies --gate. "
         "Defaults to the committed baseline.",
     ),
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Print one machine-readable JSON line instead of tables (retrieval-only, "
+        "report-only; combines with neither --faithfulness nor --gate). See ADR-0019.",
+    ),
 ) -> None:
     """Report a pack's retrieval hit-rate against its labelled question set.
 
     Report-only by default (always exits 0 — the ADR-0006/0007 promise). Pass ``--gate`` (or a
     ``--min-hit-rate`` floor) to add a regression gate: exit ``2`` when the hit-rate is below the
-    floor, exit ``0`` when it meets it. See ADR-0008.
+    floor, exit ``0`` when it meets it. See ADR-0008. ``--json`` prints one machine-readable JSON
+    line (scores plus index provenance) for the served-corpus eval history; it is retrieval-only
+    and report-only, so it refuses ``--faithfulness`` and ``--gate``/``--min-hit-rate``
+    (ADR-0019).
     """
+    # The --json surface is deliberately minimal (ADR-0019): retrieval-only and report-only.
+    # Fail fast on a posture clash instead of guessing which output the caller wanted.
+    if json_output and faithfulness:
+        _die(ValueError("--json is retrieval-only; it cannot be combined with --faithfulness."))
+    if json_output and (gate or min_hit_rate is not None):
+        _die(ValueError("--json is report-only; it cannot be combined with --gate/--min-hit-rate."))
     try:
         report = run_retrieval_eval(pack, k=k)
     except (KeyError, FileNotFoundError, ValueError) as exc:
         _die(exc)
+    if json_output:
+        # Plain print, not console.print: the line feeds a machine (a .jsonl history file), so
+        # rich wrapping/markup must never touch it. --show-misses is ignored here, since misses
+        # are always serialized. The timestamp is computed at this boundary and injected, so the
+        # serializer stays pure (offline tests inject their own).
+        settings = get_settings()
+        print(
+            serialize_retrieval_report(
+                report,
+                meta=index_mod.read_meta(index_mod.index_dir(pack, settings)),
+                score_floor=settings.score_floor,
+                faiss_normalize=settings.faiss_normalize,
+                timestamp=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            )
+        )
+        return
     pct = round(report.hit_rate * 100)
     console.print(f"retrieval hit-rate: [bold]{report.hits}/{report.total}[/] ({pct}%)")
     _print_eval(report, show_misses=show_misses)
