@@ -8,6 +8,20 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Fetched-coverage eval questions for the batch-1 Help Center articles, extending the
+  [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md) contract to the
+  [ADR-0023](docs/architecture/adr/0023-help-center-harvest-batch-1.md) harvest: 9
+  identifier-anchored questions added to the ubiquiti pack's `questions.yaml`, each tagged
+  `corpus: fetched` and guarding one previously-unguarded batch-1 article (Site Magic /
+  SD-WAN, WireGuard 51820, Teleport 24h, backup `.unf`, factory-reset hold time, DNS
+  Forward Domain, DNS UDP Port 53, Channel AI, switch-port QoS DSCP / IP Precedence). Every
+  anchor co-locates in one served-index chunk at k=5 and union-misses the local-only index
+  (scratch-verified on the Spark; the existing 32 questions are unchanged at 30/32,
+  projected served eval 39/41 after the post-merge re-ingest). The `dns-record-types`
+  `[CNAME, SRV]` candidate was a measured k=5 recall gap and is deferred — same class as
+  ADR-0020's rejected candidates — so DNS Records is guarded by `dns-forward-domain`
+  instead. The loader still excludes fetched questions by default, so the CI gate's
+  local-only population (19 curated, floor 0.9) is unchanged by construction; no new ADR.
 - Help Center harvest, batch 1 completion — the deferred `Maximizing-Wireless-Speeds`
   article ([ADR-0023](docs/architecture/adr/0023-help-center-harvest-batch-1.md)): held out
   of batch 1 because it displaced the `channel-2-4ghz` primer chunk from top-5, it now lands

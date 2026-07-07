@@ -252,3 +252,72 @@ questions:
       - ACL
     corpus: fetched
     note: Best Practices Guest WiFi.
+
+  # Batch-1 Help Center articles (ADR-0023): one identifier-anchored coverage question
+  # per fetched article, under the same `corpus: fetched` policy as the block above.
+  - id: vpn-site-magic
+    question: What is UniFi's SD-WAN solution for a site-to-site VPN between UniFi gateways?
+    expected:
+      - Site Magic
+      - SD-WAN
+    corpus: fetched
+    note: Introduction to VPNs; Site Magic SD-WAN site-to-site.
+
+  - id: wireguard-port
+    question: What is the default port for the UniFi WireGuard VPN server?
+    expected:
+      - WireGuard
+      - "51820"
+    corpus: fetched
+    note: WireGuard VPN Server; default UDP 51820.
+
+  - id: teleport-invite
+    question: How long is a UniFi Teleport VPN invitation valid before it expires?
+    expected:
+      - Teleport
+      - 24 hours
+    corpus: fetched
+    note: Teleport VPN; invitation expires in 24 hours.
+
+  - id: backup-file-ext
+    question: What file extension does a UniFi Network Application backup file use?
+    expected:
+      - .unf
+    corpus: fetched
+    note: Backups and Migration; offline Network backup file (*.unf).
+
+  - id: reset-hold-time
+    question: How long do you hold the reset button to factory reset a UniFi device?
+    expected:
+      - 5-10 seconds
+    corpus: fetched
+    note: Reset to Factory Defaults; hold 5-10 seconds.
+
+  - id: dns-forward-domain
+    question: How does a UniFi gateway forward DNS queries for a domain to another DNS server?
+    expected:
+      - Forward Domain
+    corpus: fetched
+    note: DNS Records and Local Hostnames; Forward Domain record type.
+
+  - id: dns-port
+    question: Which port must not be blocked upstream for UniFi DNS resolution to work?
+    expected:
+      - UDP Port 53
+    corpus: fetched
+    note: DNS Troubleshooting; DNS uses UDP Port 53.
+
+  - id: channel-ai
+    question: Which UniFi feature automatically optimizes access-point channel selection to reduce interference?
+    expected:
+      - Channel AI
+    corpus: fetched
+    note: Optimizing WiFi Connectivity; automated channelization.
+
+  - id: qos-dscp
+    question: How do you configure QoS marking on a UniFi switch port?
+    expected:
+      - DSCP
+      - IP Precedence
+    corpus: fetched
+    note: QoS and Traffic Shaping; switch-port DSCP / IP Precedence.
