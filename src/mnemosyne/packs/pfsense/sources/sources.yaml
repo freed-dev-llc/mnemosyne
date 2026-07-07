@@ -1,0 +1,15 @@
+# Corpus for the pfSense pack.
+#
+# Mnemosyne ships NO third-party documentation. These primers are self-authored original
+# prose stating public, non-copyrightable pfSense facts (default addresses, mode names,
+# protocol names), grounded in the official Netgate documentation but copied from none of
+# it. Fetched Netgate URLs and their coverage questions are a later roadmap step.
+#
+# To extend: add more URLs under `urls:`, or drop local .md/.txt/.html/.pdf files into this
+# `sources/` directory (they are auto-discovered).
+local:
+  - ./sources/pfsense-core-concepts.md
+  - ./sources/pfsense-firewall-rules.md
+  - ./sources/pfsense-nat-vpn.md
+
+urls: []

@@ -87,10 +87,24 @@ jobs:
           mnemosyne ingest ubiquiti --local-only
           mnemosyne eval ubiquiti --gate | tee eval.out
           code=${PIPESTATUS[0]}
-          { echo "### Retrieval hit-rate gate"; echo '```'; cat eval.out; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
-          if   [ "$code" -eq 2 ]; then echo "::error title=Retrieval gate::hit-rate below floor (exit 2)";
-          elif [ "$code" -ne 0 ]; then echo "::warning title=Retrieval gate::eval did not run cleanly (exit $code)"; fi
-          exit $code
+          # Second gated pack: pfSense (curated-only, offline-buildable — ADR-0024). bge-m3 is
+          # already pulled, so it adds one ingest + eval and never reds the run (this step is
+          # `continue-on-error`).
+          mnemosyne ingest pfsense --local-only
+          mnemosyne eval pfsense --gate | tee eval-pfsense.out
+          pf_code=${PIPESTATUS[0]}
+          { echo "### Retrieval hit-rate gate"; echo '```'; cat eval.out; echo; cat eval-pfsense.out; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          # Severity spans BOTH packs so neither regression hides behind the other's exit code:
+          # ::error if EITHER pack is below floor (exit 2), else ::warning if either did not run
+          # cleanly (any non-zero), else success. exit 2 dominates a bare non-zero, which dominates 0.
+          if   [ "$code" -eq 2 ] || [ "$pf_code" -eq 2 ]; then
+            echo "::error title=Retrieval gate::hit-rate below floor (ubiquiti exit $code, pfsense exit $pf_code)"
+            exit 2
+          elif [ "$code" -ne 0 ] || [ "$pf_code" -ne 0 ]; then
+            echo "::warning title=Retrieval gate::eval did not run cleanly (ubiquiti exit $code, pfsense exit $pf_code)"
+            [ "$code" -ne 0 ] && exit "$code" || exit "$pf_code"
+          fi
+          exit 0
 
   # Job `dummy-pack-install` is a NON-BLOCKING, non-required check (issue #61 Candidate Step
   # B). It pip-installs `examples/dummy-pack`, a throwaway package with its own
