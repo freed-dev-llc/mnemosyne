@@ -67,11 +67,13 @@ Mnemosyne can *explain*. Knowledge packs expand in lockstep with Argus vendor pa
       [ADR-0017](architecture/adr/0017-retrieval-quality-known-limitations.md); an embedder swap
       to llama-embed-nemotron-8b was evaluated and rejected, see
       [ADR-0018](architecture/adr/0018-nemotron-embedder-evaluation.md).
-- [ ] Served-corpus eval visibility: `eval-gate` measures the local-only corpus, so it overstates
-      what a running server retrieves (served ubiquiti is ~0.84, not the 0.95 CI reports). A
-      non-gating served eval or a frozen staged snapshot is deferred on determinism grounds
-      (ADR-0016, issue #60); see
-      [ADR-0017](architecture/adr/0017-retrieval-quality-known-limitations.md).
+- [x] Served-corpus eval visibility: `eval-gate` measures the local-only corpus, so it overstates
+      what a running server retrieves (served ubiquiti is ~0.84, not the 0.95 CI reports). Shipped
+      as a report-only served eval: `mnemosyne eval <pack> --json` plus `scripts/eval-served.sh`
+      append per-run snapshots to a gitignored history file, and an opt-in weekly systemd timer
+      keeps them coming; see [ADR-0019](architecture/adr/0019-served-corpus-eval-report-only.md).
+      A frozen staged snapshot was rejected, not deferred: it would store third-party content
+      durably and go stale (ADR-0016, ADR-0019).
 
 ## Non-goals (for now)
 

@@ -6,6 +6,10 @@ Date: 2026-06-29
 
 Accepted
 
+Editorial note (2026-07-07): issue/PR numbers cited in this ADR use pre-rewrite
+numbering; the repository history was re-created on 2026-07-04, so those references no
+longer resolve.
+
 Fixes issue #40. Removes the constraint [ADR-0012](0012-resweep-against-matured-ubiquiti-corpus.md)
 worked around when it excluded the `chunk_size=300` sweep axis.
 

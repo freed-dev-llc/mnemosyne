@@ -28,6 +28,13 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Fixed
 
+- Docs accuracy after the 2026-07-04 history re-creation: six accepted ADRs (0010, 0012,
+  0013, 0014, 0016, 0017) now carry a dated editorial note that their issue/PR numbers use
+  pre-rewrite numbering and no longer resolve (decision text untouched; ADR-0018's
+  `ollama/ollama` references are upstream-qualified and stay). The ROADMAP's served-corpus
+  eval box is flipped to shipped, citing
+  [ADR-0019](docs/architecture/adr/0019-served-corpus-eval-report-only.md) instead of
+  calling the eval deferred, with the frozen-snapshot alternative described as rejected.
 - The documented `score_floor` disable now parses from the environment:
   `MNEMOSYNE_SCORE_FLOOR=none` (synonyms: `null` or an empty value, case-insensitive) disables
   the relevance floor and restores the always-return-top-k behavior. Previously every such

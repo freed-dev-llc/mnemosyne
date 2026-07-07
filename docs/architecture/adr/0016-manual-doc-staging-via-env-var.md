@@ -6,6 +6,10 @@ Date: 2026-07-01
 
 Accepted
 
+Editorial note (2026-07-07): issue/PR numbers cited in this ADR use pre-rewrite
+numbering; the repository history was re-created on 2026-07-04, so those references no
+longer resolve.
+
 ## Context
 
 Mnemosyne ships no third-party docs (ADR-0003). The two existing corpus paths (`sources/`,
