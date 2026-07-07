@@ -69,7 +69,8 @@ Defaults target the Spark box; override with the `SPARK_HOST`, `SPARK_REPO`, `SP
 ## Served-corpus eval (report-only)
 
 CI's `eval-gate` scores a deterministic local-only corpus, which overstates what a running
-server retrieves (ubiquiti: 0.95 local-only vs ~0.84 served; see
+server retrieves (ubiquiti: 19/19 local-only vs 30/32 served, the ADR-0022 scratch
+measurements pending the production re-ingest; the gap's causes are in
 [ADR-0017](../docs/architecture/adr/0017-retrieval-quality-known-limitations.md)). Running
 the eval on the serving host scores the live index the service answers from, and `--json`
 records which index that was:
