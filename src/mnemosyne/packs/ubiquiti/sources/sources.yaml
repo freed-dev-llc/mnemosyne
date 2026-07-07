@@ -44,3 +44,17 @@ urls:
   # Wireless & isolation
   - https://help.ui.com/hc/en-us/articles/23948850278295-Best-Practices-Guest-WiFi
   - https://help.ui.com/hc/en-us/articles/18965560820247-Implementing-Network-and-Client-Isolation-in-UniFi
+  # VPN (remote access & site-to-site)
+  - https://help.ui.com/hc/en-us/articles/7951513517079-UniFi-Gateway-Introduction-to-VPNs
+  - https://help.ui.com/hc/en-us/articles/115005445768-UniFi-Gateway-WireGuard-VPN-Server
+  - https://help.ui.com/hc/en-us/articles/5246403561495-UniFi-Gateway-Teleport-VPN
+  # Console management & lifecycle
+  - https://help.ui.com/hc/en-us/articles/360008976393-Backups-and-Migration-in-UniFi
+  - https://help.ui.com/hc/en-us/articles/205143490-How-to-Reset-UniFi-Devices-to-Factory-Defaults
+  # DNS & DHCP services
+  - https://help.ui.com/hc/en-us/articles/15179064940439-UniFi-DNS-Records-and-Local-Hostnames
+  - https://help.ui.com/hc/en-us/articles/17484948645015-UniFi-DNS-Troubleshooting-Guide
+  # Advanced WiFi
+  - https://help.ui.com/hc/en-us/articles/221029967-Optimizing-WiFi-Connectivity-and-Reducing-Latency
+  # Traffic management
+  - https://help.ui.com/hc/en-us/articles/204911354-UniFi-QoS-and-Traffic-Shaping
