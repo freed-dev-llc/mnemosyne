@@ -8,6 +8,18 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Second knowledge pack, `pfsense`
+  ([ADR-0024](docs/architecture/adr/0024-second-knowledge-pack-pfsense.md)): the first in-tree
+  vendor expert beyond the `ubiquiti` worked example, proving the knowledge-pack model
+  ([ADR-0003](docs/architecture/adr/0003-knowledge-packs.md)) generalizes to a real second
+  vendor with no pipeline edits. Curated seed of 3 self-authored primers (core concepts,
+  firewall rules, NAT and VPN) plus 10 curated questions that clear the 0.9 retrieval gate at
+  10/10 on a local-only scratch index (bge-m3, 500/150). The primers are original prose stating
+  public, non-copyrightable pfSense facts grounded in (not copied from) the Netgate docs, so the
+  "ship no third-party documentation" rule holds. Wired into the CI `eval-gate` as a second gated
+  pack. Two candidate questions (`aliases`, `floating-rules`) are deferred as a known
+  retrieval-rank gap, same class as `ubiquiti`'s `port-profiles` / `poe-cycle`
+  ([ADR-0021](docs/architecture/adr/0021-hybrid-retrieval-evaluation.md)).
 - Fetched-coverage eval questions for the batch-1 Help Center articles, extending the
   [ADR-0020](docs/architecture/adr/0020-fetched-coverage-questions.md) contract to the
   [ADR-0023](docs/architecture/adr/0023-help-center-harvest-batch-1.md) harvest: 9

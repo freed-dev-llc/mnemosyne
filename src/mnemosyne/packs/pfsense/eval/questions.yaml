@@ -1,0 +1,77 @@
+# Labelled retrieval question set for the pfSense pack.
+#
+# Ground truth = expected substrings (see ADR-0006), each drawn verbatim from a local source
+# file in sources/. A question "hits" iff EVERY string in `expected` appears (case-insensitive)
+# in the concatenated top-k retrieved chunks. Author questions only from text that is actually
+# in the corpus. All questions are curated (local ground truth); a `corpus: fetched` block for
+# fetched Netgate pages is a later roadmap step (ADR-0020 pattern).
+questions:
+  # --- Core concepts (pfsense-core-concepts.md) ---
+  - id: pf-platform
+    question: What operating system and packet filter is pfSense built on?
+    expected:
+      - FreeBSD
+      - pf packet filter
+    note: Core platform.
+
+  - id: default-lan-ip
+    question: What is the default LAN IP address of a fresh pfSense installation?
+    expected:
+      - 192.168.1.1
+    note: Default LAN /24.
+
+  - id: webgui
+    question: What is the pfSense web management interface called?
+    expected:
+      - webConfigurator
+    note: The web GUI, reached over HTTPS at the LAN IP.
+
+  - id: anti-lockout
+    question: What default rule keeps an administrator from being locked out of the pfSense LAN?
+    expected:
+      - anti-lockout
+    note: Default anti-lockout rule on the LAN.
+
+  # --- Firewall rules (pfsense-firewall-rules.md) ---
+  - id: rule-order
+    question: In what order does pfSense evaluate the firewall rules on an interface?
+    expected:
+      - first match
+      - top down
+    note: Top-down, first match wins.
+
+  - id: rule-direction
+    question: In which direction are pfSense interface firewall rules applied?
+    expected:
+      - inbound
+    note: Inbound on the interface.
+
+  - id: stateful
+    question: Are pfSense firewall rules stateful by default?
+    expected:
+      - stateful
+      - state table
+    note: Stateful by default; a state table entry per allowed flow.
+
+  # --- NAT and VPN (pfsense-nat-vpn.md) ---
+  - id: outbound-nat-modes
+    question: What are the outbound NAT modes available in pfSense?
+    expected:
+      - Automatic
+      - Hybrid
+      - Manual
+      - Disabled
+    note: The four outbound NAT modes.
+
+  - id: port-forward
+    question: How do you allow inbound access to an internal server behind pfSense?
+    expected:
+      - port forward
+    note: A port forward (destination NAT).
+
+  - id: vpn-builtin
+    question: Which VPN types does pfSense include in the base system?
+    expected:
+      - OpenVPN
+      - IPsec
+    note: OpenVPN and IPsec built in; WireGuard is an add-on package.

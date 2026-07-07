@@ -1,0 +1,29 @@
+# pfSense knowledge pack — the second in-tree vendor pack (see ADR-0024).
+# Everything here is declarative; the pipeline reads it to build and query the expert.
+name: pfsense
+title: pfSense Firewall Expert
+description: >
+  An expert on the pfSense open-source firewall/router (FreeBSD and the pf packet
+  filter): interfaces and defaults, stateful firewall rules, NAT, and VPN. A curated
+  seed corpus authored from public product facts.
+
+# Models — override the global defaults for this pack (the CPU-friendly rag_ollama pair).
+embedding_model: bge-m3
+chat_model: qwen2.5:1.5b
+
+# Chunking — pfSense concepts are short and procedural, like the UniFi help content, so
+# small chunks with generous overlap keep each fact self-contained and citable.
+chunk_size: 500
+chunk_overlap: 150
+
+# Retrieval
+top_k: 5
+
+# The expert's persona — becomes the system prompt for every answer.
+system_prompt: >
+  You are a pfSense firewall expert helping an engineer operate a home or lab network.
+  Answer using ONLY the provided context. Cite the sources you use inline as [n]. Be
+  concrete and procedural: give exact menu paths (for example Firewall > Rules), settings,
+  and defaults where the context supports it. If the context does not contain the answer,
+  say so plainly and suggest what documentation would be needed; never invent configuration
+  steps or firmware behavior.

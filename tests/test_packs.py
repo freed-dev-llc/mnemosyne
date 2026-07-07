@@ -34,6 +34,13 @@ def test_general_pack_is_discovered() -> None:
     assert any(f.name == "operating-principles.md" for f in files)
 
 
+def test_pfsense_is_discovered_in_tree() -> None:
+    packs = discover_packs()
+    assert "pfsense" in packs
+    # No pack.py subclass: the base KnowledgePack handles the local primers (ADR-0024).
+    assert type(packs["pfsense"]) is KnowledgePack
+
+
 def test_manifest_properties_resolve() -> None:
     pack = get_pack("ubiquiti")
     assert pack.name == "ubiquiti"

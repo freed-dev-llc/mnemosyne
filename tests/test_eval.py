@@ -44,6 +44,7 @@ from mnemosyne.eval import (
     score_sweep,
     serialize_retrieval_report,
 )
+from mnemosyne.packs.registry import get_pack
 
 
 def _retrieve_from(*texts: str):
@@ -181,6 +182,30 @@ def test_load_questions_raises_when_the_set_is_absent() -> None:
     # The `general` pack ships no eval/questions.yaml.
     with pytest.raises(FileNotFoundError):
         load_questions("general")
+
+
+def test_load_questions_reads_the_shipped_pfsense_set() -> None:
+    # The curated pfSense seed ships exactly 10 questions, all curated (ADR-0024); a fetched
+    # Netgate block is a later roadmap step, so nothing here is tagged `corpus: fetched`.
+    questions = load_questions("pfsense")
+    assert len(questions) == 10
+    assert all(q.corpus == "curated" for q in questions)
+
+
+def test_every_shipped_pfsense_expected_string_is_grounded_in_the_primers() -> None:
+    # Data contract (ADR-0006): every curated `expected` substring is verbatim in the pack's
+    # own primer corpus. This is the offline proof the ground truth is real — it reads the
+    # source .md files directly, with no Ollama, no index, and no network.
+    primer_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in sorted((get_pack("pfsense").directory / "sources").glob("*.md"))
+    ).lower()
+    for q in load_questions("pfsense"):
+        for item in q.expected:
+            alternatives = [item] if isinstance(item, str) else item
+            assert any(alt.lower() in primer_text for alt in alternatives), (
+                f"question '{q.id}': none of {alternatives} found in the pfSense primers"
+            )
 
 
 # --- Answer faithfulness (generation-side metric; ADR-0007) --------------------------------
