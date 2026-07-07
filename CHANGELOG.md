@@ -8,6 +8,18 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ### Added
 
+- Help Center harvest, batch 1
+  ([ADR-0023](docs/architecture/adr/0023-help-center-harvest-batch-1.md)): 9 verified
+  help.ui.com articles added to the ubiquiti pack's `sources.yaml` (VPN incl. WireGuard and
+  Teleport, console backups/migration and factory reset, DNS records and troubleshooting,
+  WiFi optimization, QoS/traffic shaping; article text is fetched at ingest and never enters
+  git). Landed against a pre-agreed dilution bar, measured per-question on a scratch index:
+  30/32 at 27 docs / 421 chunks, zero unexplained flips, fetched coverage 13/13. The bar
+  tripped once on the 10-article draft: `Maximizing-Wireless-Speeds` genuinely answers the
+  `channel-2-4ghz` question in different words, so it is deferred to land with that
+  question's OR-group fix rather than rejected. Fetch-health finding recorded: help.ui.com's
+  403s are client-header-dependent (a CDN challenge to bare HTTP clients; the loader's
+  browser-like headers pass), not network-dependent.
 - [ADR-0021](docs/architecture/adr/0021-hybrid-retrieval-evaluation.md): re-measured hybrid
   BM25+dense retrieval on the 32-question instrument (ADR-0020) under a pre-registered
   method (pinned BM25 parameters, blend, alpha grid, stratified dev/held-out split with a
