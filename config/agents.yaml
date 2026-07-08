@@ -2,6 +2,12 @@
 # Three profiles: local-only, hybrid (mix of local + cloud), cloud-only.
 # Select via MNEMOSYNE_AGENT_PROFILE env var or config knob.
 #
+# GPU Support: All local providers (Ollama, vLLM, llama.cpp) support GPU acceleration
+# (CUDA, ROCm, Metal). See GPU_SETUP.md for setup guide.
+#
+# Custom Endpoints: Users can modify profiles to point to their own infrastructure
+# (private GPU cluster, remote server, etc.) by changing the endpoint and model fields.
+#
 # Types:
 #   conductor   — orchestrator (Sage, Nova, Vera — specialized roles)
 #   utility     — catch-all for routine tasks (Haiku — cheap tier)
