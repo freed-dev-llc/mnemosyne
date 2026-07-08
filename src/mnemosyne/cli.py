@@ -345,7 +345,7 @@ def _print_sources(sources: list[Source]) -> None:
     table.add_column("source", style="dim")
     for s in sources:
         label = f"{s.title}, p.{s.page}" if s.page else s.title
-        table.add_row(str(s.n), str(label), str(s.source))
+        table.add_row(str(s.n), escape(str(label)), escape(str(s.source)))
     console.print(table)
 
 
@@ -358,9 +358,9 @@ def _print_eval(report: EvalReport, *, show_misses: bool) -> None:
         table.add_column("missing", style="dim")
     for r in report.results:
         mark = "[green]pass[/]" if r.hit else "[red]fail[/]"
-        row = [r.id, r.question, mark]
+        row = [escape(r.id), escape(r.question), mark]
         if show_misses:
-            row.append(", ".join(r.missing))
+            row.append(escape(", ".join(r.missing)))
         table.add_row(*row)
     console.print(table)
 
@@ -374,9 +374,9 @@ def _print_faithfulness(report: FaithfulnessReport, *, show_misses: bool) -> Non
         table.add_column("ungrounded", style="dim")
     for r in report.results:
         # Score only — no pass/fail mark: there is no threshold this step (that is Step 3).
-        row = [r.id, r.question, f"{r.score:.2f}"]
+        row = [escape(r.id), escape(r.question), f"{r.score:.2f}"]
         if show_misses:
-            row.append(", ".join(r.ungrounded))
+            row.append(escape(", ".join(r.ungrounded)))
         table.add_row(*row)
     console.print(table)
 

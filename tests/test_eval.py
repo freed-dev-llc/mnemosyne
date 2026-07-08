@@ -390,6 +390,25 @@ def test_eval_command_without_gate_always_exits_zero(monkeypatch: pytest.MonkeyP
     assert result.exit_code == 0
 
 
+def test_eval_command_keeps_bracketed_question_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A question containing rich-markup brackets must survive to the eval table unescaped-away.
+    report = EvalReport(
+        pack="demo",
+        k=5,
+        total=1,
+        hits=1,
+        hit_rate=1.0,
+        results=[EvalResult(id="q1", question="what is [3]?", hit=True, missing=[])],
+    )
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: report,
+    )
+    result = runner.invoke(app, ["eval", "demo"])
+    assert result.exit_code == 0
+    assert "[3]" in result.output
+
+
 def test_eval_command_gate_passes_at_or_above_floor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "mnemosyne.cli.run_retrieval_eval",

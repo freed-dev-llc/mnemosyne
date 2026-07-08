@@ -9,7 +9,7 @@ from typer.testing import CliRunner
 
 from mnemosyne import __version__
 from mnemosyne.cli import app
-from mnemosyne.pipeline import RagAnswer
+from mnemosyne.pipeline import RagAnswer, Source
 
 runner = CliRunner()
 
@@ -86,6 +86,30 @@ def test_ask_preserves_citation_markers(monkeypatch: pytest.MonkeyPatch) -> None
     result = runner.invoke(app, ["ask", "fake", "hi"])
     assert result.exit_code == 0
     assert "[1]" in result.output
+
+
+class _SourcedPipeline:
+    """A fake RagPipeline whose one source title carries literal rich-markup brackets."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def ask(self, question: str, chat_history: str = "") -> RagAnswer:
+        return RagAnswer(
+            question=question,
+            text="ok",
+            sources=[Source(n=1, title="[UDM] setup", source="a.md")],
+        )
+
+
+def test_show_sources_keeps_bracketed_title(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A bracketed source title must not be swallowed by rich markup in the sources table."""
+    monkeypatch.setattr("mnemosyne.cli.get_pack", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr("mnemosyne.cli.RagPipeline", _SourcedPipeline)
+
+    result = runner.invoke(app, ["ask", "fake", "hi", "--show-sources"])
+    assert result.exit_code == 0
+    assert "[UDM]" in result.output
 
 
 def test_chat_preserves_citation_markers(monkeypatch: pytest.MonkeyPatch) -> None:
