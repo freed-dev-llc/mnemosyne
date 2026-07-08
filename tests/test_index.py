@@ -16,6 +16,7 @@ from langchain_core.embeddings import Embeddings
 
 from mnemosyne.config import Settings
 from mnemosyne.index import (
+    META_FILE,
     build_index,
     index_dir,
     index_exists,
@@ -43,6 +44,19 @@ def test_meta_round_trips(tmp_path: Path) -> None:
 
 def test_read_meta_missing_returns_none(tmp_path: Path) -> None:
     assert read_meta(tmp_path / "nope") is None
+
+
+def test_read_meta_corrupt_returns_none_and_warns(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A truncated/corrupt meta.json is logged and treated as absent, not raised (crash guard)."""
+    path = tmp_path / "pack"
+    path.mkdir()
+    meta_path = path / META_FILE
+    meta_path.write_text("{not json", encoding="utf-8")
+    with caplog.at_level(logging.WARNING):
+        assert read_meta(path) is None
+    assert any(str(meta_path) in r.message for r in caplog.records)
 
 
 class _CountingEmbeddings(Embeddings):
@@ -149,6 +163,45 @@ def test_build_index_skips_unembeddable_chunk(
     hits = load_index(path, _PoisonEmbeddings(poison, batch=batch)).similarity_search(good1, k=3)
     contents = {h.page_content for h in hits}
     assert good1 in contents and poison not in contents
+
+
+class _DocumentOnlyEmbeddings(Embeddings):
+    """Offline embedder whose batch ``embed_documents`` fails, forcing the per-chunk fallback.
+
+    The first (multi-item) ``embed_documents`` call raises, so ``build_index`` drops to the
+    per-chunk path; each single-item ``embed_documents`` call then succeeds. ``embed_query``
+    raises, proving the fallback embeds documents with ``embed_documents`` and never reaches for
+    the query call (which, for an asymmetric backend, would store query-space vectors).
+    """
+
+    _DIM = 64
+
+    def _vector(self, text: str) -> list[float]:
+        vec = [0.0] * self._DIM
+        for token in text.lower().split():
+            vec[sum(ord(c) for c in token) % self._DIM] += 1.0
+        return vec
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        if len(texts) > 1:
+            raise RuntimeError("simulated batch failure: forcing the per-chunk fallback")
+        return [self._vector(t) for t in texts]
+
+    def embed_query(self, text: str) -> list[float]:
+        raise AssertionError("embed_query must not be used for documents")
+
+
+def test_build_index_fallback_embeds_documents_not_query(tmp_path: Path) -> None:
+    """The per-chunk fallback embeds documents via ``embed_documents`` (issue #40 asymmetry)."""
+    if importlib.util.find_spec("faiss") is None:
+        pytest.skip("faiss not installed (the mamba env or the `cpu` extra provides it)")
+
+    docs = [
+        Document(page_content="device adoption brings a unifi device under management"),
+        Document(page_content="the firewall blocks inbound wan traffic by default"),
+    ]
+    store = build_index(docs, _DocumentOnlyEmbeddings(), tmp_path / "tiny")
+    assert int(store.index.ntotal) == 2
 
 
 def test_build_index_all_unembeddable_raises(tmp_path: Path) -> None:
