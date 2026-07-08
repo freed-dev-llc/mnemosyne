@@ -124,8 +124,8 @@ class TestAgentProperties:
         assert "plan" in sage.when_to_use.lower()
 
     def test_haiku_properties(self):
-        """Haiku has expected properties."""
-        haiku = get_haiku()
+        """Haiku has expected properties in cloud-only profile."""
+        haiku = get_haiku(profile="cloud-only")
         assert haiku is not None
         assert haiku.model == "claude-haiku-4-5-20251001"
         assert haiku.endpoint == "https://api.anthropic.com/v1/messages"

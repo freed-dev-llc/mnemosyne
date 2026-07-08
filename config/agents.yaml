@@ -1,33 +1,194 @@
-# Mnemosyne Agent Registry
-# Orchestrates Claude agents by cost and capability tier.
-# Sage (planning) → Nova (implementation) → Vera (verification) → Haiku (everything else).
+# Mnemosyne Agent Registry — Multi-Profile Configuration
+# Three profiles: local-only, hybrid (mix of local + cloud), cloud-only.
+# Select via MNEMOSYNE_AGENT_PROFILE env var or config knob.
 #
 # Types:
-#   conductor   — orchestrator (Sage, Nova, Vera — Claude models)
+#   conductor   — orchestrator (Sage, Nova, Vera — specialized roles)
 #   utility     — catch-all for routine tasks (Haiku — cheap tier)
 
 schema_version: 1
 
-agents:
+# Active profile: determines which endpoints agents use.
+# Options: local-only, hybrid, cloud-only
+# Default: hybrid (Sage/Nova/Vera use cloud, Haiku uses local)
+active_profile: hybrid
 
-  # =========================================================================
-  # Conductor agents (Claude tier — specialized roles)
-  # =========================================================================
+# Profile definitions: each maps agent names to their active endpoint config
+profiles:
+  local-only:
+    description: >
+      All agents use local LLMs (Ollama, vLLM, llama.cpp).
+      No cloud costs, fully offline. Sage/Nova/Vera use capable local models.
+    agents:
+      sage:
+        model: llama2:70b
+        endpoint: http://localhost:11434/api/chat
+        provider: ollama
+      nova:
+        model: llama2:70b
+        endpoint: http://localhost:11434/api/chat
+        provider: ollama
+      vera:
+        model: llama2:13b
+        endpoint: http://localhost:11434/api/chat
+        provider: ollama
+      haiku:
+        model: qwen2.5:1.5b
+        endpoint: http://localhost:11434/api/chat
+        provider: ollama
+
+  hybrid:
+    description: >
+      Sage/Nova/Vera use cloud APIs (cost-optimized for complex tasks).
+      Haiku uses local Ollama (fast, free, reduces token burn).
+    agents:
+      sage:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+        fallback:
+          model: llama2:70b
+          endpoint: http://localhost:11434/api/chat
+          provider: ollama
+      nova:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+        fallback:
+          model: llama2:70b
+          endpoint: http://localhost:11434/api/chat
+          provider: ollama
+      vera:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+        fallback:
+          model: llama2:13b
+          endpoint: http://localhost:11434/api/chat
+          provider: ollama
+      haiku:
+        model: qwen2.5:1.5b
+        endpoint: http://localhost:11434/api/chat
+        provider: ollama
+
+  cloud-only:
+    description: >
+      All agents use cloud APIs. Choose primary (Claude) or alternatives (Kimi, Codex).
+    agents:
+      sage:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+      nova:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+      vera:
+        model: claude-opus-4-8
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+      haiku:
+        model: claude-haiku-4-5-20251001
+        endpoint: https://api.anthropic.com/v1/messages
+        provider: anthropic
+        api_key_env: ANTHROPIC_API_KEY
+
+# Alternative cloud providers (swap into any profile)
+# Usage: copy an agent from cloud-only section and change provider/endpoint/api_key_env
+
+cloud_providers:
+  anthropic:
+    display_name: Claude
+    description: "Anthropic's Claude family. Recommended for quality + cost balance."
+    models:
+      sage: claude-opus-4-8
+      nova: claude-opus-4-8
+      vera: claude-opus-4-8
+      haiku: claude-haiku-4-5-20251001
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+
+  kimi:
+    display_name: Kimi (Moonshot AI)
+    description: "Moonshot's Kimi model. Long context, multilingual. Lower cost than Claude."
+    models:
+      sage: moonshot-v1-128k
+      nova: moonshot-v1-128k
+      vera: moonshot-v1-32k
+      haiku: moonshot-v1-8k
+    endpoint: https://api.moonshot.cn/openai/v1/chat/completions
+    api_key_env: MOONSHOT_API_KEY
+
+  codex:
+    display_name: Code-Specialist (Claude via Anthropic)
+    description: "Anthropic's Claude optimized for code. Same as Claude but worth explicit selection."
+    models:
+      sage: claude-opus-4-8
+      nova: claude-opus-4-8
+      vera: claude-opus-4-8
+      haiku: claude-haiku-4-5-20251001
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+
+# Local LLM providers (swap into any profile)
+local_providers:
+  ollama:
+    display_name: Ollama
+    description: "Local inference via Ollama. Zero cost, full privacy, CPU/GPU support."
+    host: http://localhost:11434
+    endpoint: /api/chat
+    models:
+      sage: llama2:70b
+      nova: llama2:70b
+      vera: llama2:13b
+      haiku: qwen2.5:1.5b
+
+  vllm:
+    display_name: vLLM
+    description: "High-throughput local inference server. Better for batch workloads."
+    host: http://localhost:8000
+    endpoint: /v1/chat/completions
+    openai_compatible: true
+    models:
+      sage: meta-llama/Llama-2-70b-hf
+      nova: meta-llama/Llama-2-70b-hf
+      vera: meta-llama/Llama-2-13b-hf
+      haiku: Qwen/Qwen2.5-1.5B
+
+  llama_cpp:
+    display_name: llama.cpp
+    description: "Lightweight CPU inference. Good for small models on limited hardware."
+    host: http://localhost:8080
+    endpoint: /v1/chat/completions
+    openai_compatible: true
+    models:
+      sage: openhermes-2.5-mistral-7b
+      nova: openhermes-2.5-mistral-7b
+      vera: mistral-7b
+      haiku: tinyllama-1.1b
+
+# =========================================================================
+# Agent definitions (shared across all profiles)
+# =========================================================================
+
+agents:
 
   sage:
     name: sage
     display_name: Sage
     type: conductor
     role: planner
-    model: claude-opus-4-8
-    endpoint: https://api.anthropic.com/v1/messages
-    api_key_env: ANTHROPIC_API_KEY
     personality: >
       Research and planning specialist. Reads the codebase deeply, traces
       dependencies, designs implementation strategies. Read-only, no mutations.
     expertise: [architecture, planning, analysis, design]
     when_to_use: "Before implementation — scope a task, understand dependencies, draft a step-by-step plan."
-    cost_tier: premium
     timeout_s: 30.0
 
   nova:
@@ -35,15 +196,11 @@ agents:
     display_name: Nova
     type: conductor
     role: implementer
-    model: claude-opus-4-8
-    endpoint: https://api.anthropic.com/v1/messages
-    api_key_env: ANTHROPIC_API_KEY
     personality: >
       Implementation specialist. Writes code, runs tests, follows conventions.
       Leaves the tree in a clean, landable state.
     expertise: [coding, testing, refactoring, build]
     when_to_use: "Execute a well-scoped implementation plan. Auto-runs lint/test/build."
-    cost_tier: premium
     timeout_s: 60.0
 
   vera:
@@ -51,33 +208,21 @@ agents:
     display_name: Vera
     type: conductor
     role: verifier
-    model: claude-opus-4-8
-    endpoint: https://api.anthropic.com/v1/messages
-    api_key_env: ANTHROPIC_API_KEY
     personality: >
       Verification specialist. Reviews diffs, runs tests, checks correctness
       and convention compliance. Read-only reviewer, no mutations.
     expertise: [review, testing, verification, correctness]
     when_to_use: "After implementation — run full test suite, review for bugs, sign off."
-    cost_tier: premium
     timeout_s: 45.0
-
-  # =========================================================================
-  # Utility agents (Haiku tier — routine, stateless tasks)
-  # =========================================================================
 
   haiku:
     name: haiku
     display_name: Haiku
     type: utility
     role: default
-    model: claude-haiku-4-5-20251001
-    endpoint: https://api.anthropic.com/v1/messages
-    api_key_env: ANTHROPIC_API_KEY
     personality: >
       Fast, cheap workhorse. Handles classification, summarization, simple
       Q&A, tool routing. Stateless, no context carryover.
     expertise: [classification, summarization, qa, routing]
     when_to_use: "Routine tasks, quick answers, low-context queries. Burn fewer tokens."
-    cost_tier: cheap
     timeout_s: 15.0
