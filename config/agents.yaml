@@ -1,0 +1,83 @@
+# Mnemosyne Agent Registry
+# Orchestrates Claude agents by cost and capability tier.
+# Sage (planning) → Nova (implementation) → Vera (verification) → Haiku (everything else).
+#
+# Types:
+#   conductor   — orchestrator (Sage, Nova, Vera — Claude models)
+#   utility     — catch-all for routine tasks (Haiku — cheap tier)
+
+schema_version: 1
+
+agents:
+
+  # =========================================================================
+  # Conductor agents (Claude tier — specialized roles)
+  # =========================================================================
+
+  sage:
+    name: sage
+    display_name: Sage
+    type: conductor
+    role: planner
+    model: claude-opus-4-8
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+    personality: >
+      Research and planning specialist. Reads the codebase deeply, traces
+      dependencies, designs implementation strategies. Read-only, no mutations.
+    expertise: [architecture, planning, analysis, design]
+    when_to_use: "Before implementation — scope a task, understand dependencies, draft a step-by-step plan."
+    cost_tier: premium
+    timeout_s: 30.0
+
+  nova:
+    name: nova
+    display_name: Nova
+    type: conductor
+    role: implementer
+    model: claude-opus-4-8
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+    personality: >
+      Implementation specialist. Writes code, runs tests, follows conventions.
+      Leaves the tree in a clean, landable state.
+    expertise: [coding, testing, refactoring, build]
+    when_to_use: "Execute a well-scoped implementation plan. Auto-runs lint/test/build."
+    cost_tier: premium
+    timeout_s: 60.0
+
+  vera:
+    name: vera
+    display_name: Vera
+    type: conductor
+    role: verifier
+    model: claude-opus-4-8
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+    personality: >
+      Verification specialist. Reviews diffs, runs tests, checks correctness
+      and convention compliance. Read-only reviewer, no mutations.
+    expertise: [review, testing, verification, correctness]
+    when_to_use: "After implementation — run full test suite, review for bugs, sign off."
+    cost_tier: premium
+    timeout_s: 45.0
+
+  # =========================================================================
+  # Utility agents (Haiku tier — routine, stateless tasks)
+  # =========================================================================
+
+  haiku:
+    name: haiku
+    display_name: Haiku
+    type: utility
+    role: default
+    model: claude-haiku-4-5-20251001
+    endpoint: https://api.anthropic.com/v1/messages
+    api_key_env: ANTHROPIC_API_KEY
+    personality: >
+      Fast, cheap workhorse. Handles classification, summarization, simple
+      Q&A, tool routing. Stateless, no context carryover.
+    expertise: [classification, summarization, qa, routing]
+    when_to_use: "Routine tasks, quick answers, low-context queries. Burn fewer tokens."
+    cost_tier: cheap
+    timeout_s: 15.0
