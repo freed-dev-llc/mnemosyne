@@ -24,7 +24,8 @@ on:
 
 permissions:
   contents: write # required to create the release and upload assets
-  id-token: write # required for PyPI trusted publishing (OIDC)
+  id-token: write # required for PyPI trusted publishing (OIDC) and Sigstore signing
+  attestations: write # required to store the build provenance attestation
 
 jobs:
   build-and-release:
@@ -47,6 +48,14 @@ jobs:
           python -m pip install --upgrade build twine
           python -m build
           twine check dist/*
+      # Attest build provenance for the artifacts attached to the GitHub release. PyPI uploads
+      # get their own PEP 740 attestation from the publish action below; this covers the copies
+      # on the release page. Verify with:
+      #   gh attestation verify <file> --repo freed-dev-llc/mnemosyne
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-path: dist/*
       # New tag -> create a DRAFT release with auto-generated notes + artifacts. On a
       # workflow_dispatch re-run where the release already exists, refresh the assets instead and
       # leave any curated notes untouched. Uses the runner's pre-installed gh CLI, no third-party
@@ -64,7 +73,9 @@ jobs:
       # authenticates with the OIDC token from the id-token permission; no stored secret.
       # skip-existing keeps a workflow_dispatch re-run from failing on an already-published
       # version.
+      # Pinned to a commit SHA because this job holds the OIDC publish identity; a moving tag
+      # or branch ref would let a compromised upstream release publish as this project.
       - name: Publish to PyPI (trusted publishing)
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
         with:
           skip-existing: true
