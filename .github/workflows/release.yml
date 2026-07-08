@@ -1,13 +1,17 @@
 name: Release
 
-# Build the sdist + wheel for a pushed version tag and open a draft GitHub release with them
-# attached.
+# Build the sdist + wheel for a pushed version tag, create a draft GitHub release with
+# artifacts attached, and publish to PyPI via trusted publishing (OIDC, no token).
 #
-# Flow: push the signed `vX.Y.Z` tag -> this builds the artifacts and creates a DRAFT release
-# (via the gh CLI) with GitHub's auto-generated notes; the maintainer curates the notes and
-# publishes. Draft means nothing is public until that publish. `workflow_dispatch` re-runs the
-# build for an existing tag (e.g. after a failed run); if the release already exists it refreshes
-# the assets instead of recreating it.
+# Flow: push the signed `vX.Y.Z` tag -> this builds the artifacts, creates a DRAFT GitHub
+# release (via the gh CLI) with auto-generated notes, and publishes to PyPI. The maintainer
+# can then curate the GitHub release notes and publish it. `workflow_dispatch` re-runs the
+# build for an existing tag (e.g. after a failed run); if the release already exists it
+# refreshes the assets instead of recreating it.
+#
+# PyPI auth is trusted publishing (OIDC), matching argus: no API token, the `id-token: write`
+# permission lets PyPI verify this workflow's identity. The PyPI project must have a matching
+# (pending) publisher configured first; see CONTRIBUTING.md.
 on:
   push:
     tags:
@@ -20,6 +24,7 @@ on:
 
 permissions:
   contents: write # required to create the release and upload assets
+  id-token: write # required for PyPI trusted publishing (OIDC)
 
 jobs:
   build-and-release:
@@ -55,3 +60,11 @@ jobs:
           else
             gh release create "$TAG" --draft --generate-notes dist/*.whl dist/*.tar.gz
           fi
+      # Publish to PyPI via trusted publishing (OIDC). The action reads dist/ built above and
+      # authenticates with the OIDC token from the id-token permission; no stored secret.
+      # skip-existing keeps a workflow_dispatch re-run from failing on an already-published
+      # version.
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true

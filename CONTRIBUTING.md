@@ -58,3 +58,37 @@ gitignored).
 - Small, single-purpose modules; the pipeline stays legible.
 - Type hints on public functions; `ruff` + `mypy` clean.
 - Match the surrounding code's idiom and comment density.
+
+## Releasing
+
+The release workflow is automated: push a signed `vX.Y.Z` tag to trigger a build, GitHub
+release creation, and PyPI publication. PyPI auth is
+[trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC), the same mechanism
+argus uses: no API token is stored anywhere; PyPI verifies the workflow's GitHub identity.
+
+### Setup (one-time)
+
+Configure the trusted publisher on PyPI **before the first release** (this also registers the
+`mnemosyne-rag` name — a token can't be scoped to a project that doesn't exist yet, which is
+why trusted publishing is the cleaner path for a new project):
+
+1. Sign in to PyPI and go to
+   [Your projects > Publishing](https://pypi.org/manage/account/publishing/) (the "pending
+   publishers" section, since the project does not exist yet).
+2. Add a new pending publisher with:
+   - **PyPI Project Name:** `mnemosyne-rag`
+   - **Owner:** `freed-dev-llc`
+   - **Repository name:** `mnemosyne`
+   - **Workflow name:** `release.yml`
+   - **Environment name:** leave blank
+3. The first tag push publishes and creates the project; the pending publisher becomes a
+   normal trusted publisher.
+
+### Release process
+
+1. Update `CHANGELOG.md`: move content from `[Unreleased]` to `[X.Y.Z] - YYYY-MM-DD`.
+2. Update `pyproject.toml`: bump `version`.
+3. Commit and tag: `git commit -S -m "release: vX.Y.Z"` and `git tag -a vX.Y.Z -m "…"`.
+4. Push: `git push origin main && git push origin vX.Y.Z`.
+5. The Release workflow builds artifacts, creates a draft GitHub release, and publishes to
+   PyPI. Review and publish the GitHub release notes when ready.
