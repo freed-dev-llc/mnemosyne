@@ -152,6 +152,18 @@ def test_load_url_honors_response_charset(
     assert "café" in doc.page_content
 
 
+def test_load_url_falls_back_to_utf8_on_bogus_charset(
+    monkeypatch: pytest.MonkeyPatch, no_sleep: list[float]
+) -> None:
+    body = "café".encode()
+    _patch_urlopen(
+        monkeypatch,
+        [_FakeResponse(body, content_type="text/html; charset=no-such-codec")],
+    )
+    doc = load_url("http://example.com")
+    assert "café" in doc.page_content
+
+
 def test_load_url_rejects_retries_below_one(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = _patch_urlopen(monkeypatch, [])
     with pytest.raises(ValueError, match="retries must be >= 1"):
