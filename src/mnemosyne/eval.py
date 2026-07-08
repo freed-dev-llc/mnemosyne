@@ -110,6 +110,11 @@ def load_questions(pack: str, *, include_fetched: bool = False) -> list[EvalQues
     (curated) or the literal ``fetched``; anything else, including an explicit
     ``curated``, raises ``ValueError`` so the tag stays single-spelling. Validation runs
     on every question, filtered out or not.
+
+    Two further checks run before any filtering: duplicate question ids raise ``ValueError``
+    naming the id, and every ``expected`` alternative must be a string (an unquoted YAML
+    number or boolean is rejected with a hint to quote it) so scoring never crashes on a
+    non-string value.
     """
     path = get_pack(pack).directory / "eval" / "questions.yaml"
     if not path.exists():
@@ -118,6 +123,7 @@ def load_questions(pack: str, *, include_fetched: bool = False) -> list[EvalQues
         )
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     questions: list[EvalQuestion] = []
+    seen_ids: set[str] = set()
     for item in raw.get("questions", []) or []:
         corpus = item.get("corpus")
         if corpus is not None and corpus != "fetched":
@@ -125,6 +131,17 @@ def load_questions(pack: str, *, include_fetched: bool = False) -> list[EvalQues
                 f"Question '{item.get('id', '?')}' has invalid corpus {corpus!r}: omit the "
                 "field for a curated question, or use 'fetched' (ADR-0020)."
             )
+        qid = item["id"]
+        if qid in seen_ids:
+            raise ValueError(f"Duplicate question id {qid!r} in {path}.")
+        seen_ids.add(qid)
+        for group in item["expected"]:
+            for alt in group if isinstance(group, list) else [group]:
+                if not isinstance(alt, str):
+                    raise ValueError(
+                        f"Question {qid!r} has a non-string expected value {alt!r}: "
+                        "quote it in questions.yaml (e.g. '42' instead of 42)."
+                    )
         if corpus == "fetched" and not include_fetched:
             continue
         questions.append(
