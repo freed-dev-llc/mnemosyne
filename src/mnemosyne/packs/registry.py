@@ -67,11 +67,16 @@ def discover_packs() -> dict[str, KnowledgePack]:
     for ep in entry_points(group=ENTRY_POINT_GROUP):
         try:
             ep_pack = _load_entry_point(ep.load())
-        except Exception:
-            _log.warning("Failed to load knowledge pack from entry point %r", ep.name)
+        except Exception as exc:
+            _log.warning("Failed to load knowledge pack from entry point %r: %s", ep.name, exc)
             continue
-        if ep_pack is not None:
-            packs[ep_pack.name] = ep_pack
+        if ep_pack is None:
+            _log.warning(
+                "Entry point %r did not provide a KnowledgePack instance or subclass; skipping.",
+                ep.name,
+            )
+            continue
+        packs[ep_pack.name] = ep_pack
 
     return packs
 

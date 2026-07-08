@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 from pathlib import Path
 
 import pytest
@@ -293,3 +294,57 @@ def test_unknown_pack_raises_with_options() -> None:
         assert "ubiquiti" in str(exc)
     else:  # pragma: no cover
         raise AssertionError("expected KeyError for unknown pack")
+
+
+def test_entry_point_load_failure_is_logged_and_skipped(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A broken installed pack (its ``load()`` raises) is logged with the reason and skipped;
+    the built-in packs are still discovered."""
+
+    class _BrokenEntryPoint:
+        name = "broken-pack"
+
+        def load(self) -> KnowledgePack:
+            raise RuntimeError("boom")
+
+    def _fake_entry_points(*, group: str) -> list[_BrokenEntryPoint]:
+        if group == registry.ENTRY_POINT_GROUP:
+            return [_BrokenEntryPoint()]
+        return []
+
+    monkeypatch.setattr("mnemosyne.packs.registry.entry_points", _fake_entry_points)
+
+    with caplog.at_level(logging.WARNING):
+        packs = discover_packs()
+
+    assert {"ubiquiti", "general"} <= set(packs)
+    assert "broken-pack" not in packs
+    messages = " ".join(r.message for r in caplog.records)
+    assert "broken-pack" in messages and "boom" in messages
+
+
+def test_entry_point_non_pack_is_logged_and_skipped(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    """An entry point returning something that is not a KnowledgePack is logged, not dropped
+    silently; the built-in packs are still discovered."""
+
+    class _NonPackEntryPoint:
+        name = "not-a-pack"
+
+        def load(self) -> object:
+            return object()
+
+    def _fake_entry_points(*, group: str) -> list[_NonPackEntryPoint]:
+        if group == registry.ENTRY_POINT_GROUP:
+            return [_NonPackEntryPoint()]
+        return []
+
+    monkeypatch.setattr("mnemosyne.packs.registry.entry_points", _fake_entry_points)
+
+    with caplog.at_level(logging.WARNING):
+        packs = discover_packs()
+
+    assert {"ubiquiti", "general"} <= set(packs)
+    assert any("not-a-pack" in r.message for r in caplog.records)
