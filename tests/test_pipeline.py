@@ -115,3 +115,40 @@ def test_ask_short_circuits_without_llm_on_empty_retrieval() -> None:
     assert isinstance(answer, RagAnswer)
     assert answer.sources == []
     assert "knowledge base" in answer.text.lower()
+
+
+def test_ask_joins_content_block_list_response() -> None:
+    """A langchain-core 1.x content-block list is joined into plain text, not repr'd."""
+    docs = _docs(1)
+    store = _FakeStore([(docs[0], 0.1)])
+    pipe = _pipeline(store, score_floor=None)
+
+    class _BlockLLM:
+        def invoke(self, messages: object) -> object:
+            return SimpleNamespace(
+                content=[{"type": "text", "text": "See "}, {"type": "text", "text": "[1]."}]
+            )
+
+    pipe.llm = _BlockLLM()  # type: ignore[assignment]
+    pipe.pack = SimpleNamespace(system_prompt=None)  # type: ignore[assignment]
+
+    answer = pipe.ask("q")
+    assert answer.text == "See [1]."
+    assert "{'type'" not in answer.text
+
+
+def test_ask_keeps_plain_string_content_unchanged() -> None:
+    """The Ollama string path is unchanged: a str content is returned as-is."""
+    docs = _docs(1)
+    store = _FakeStore([(docs[0], 0.1)])
+    pipe = _pipeline(store, score_floor=None)
+
+    class _StringLLM:
+        def invoke(self, messages: object) -> object:
+            return SimpleNamespace(content="A plain answer [1].")
+
+    pipe.llm = _StringLLM()  # type: ignore[assignment]
+    pipe.pack = SimpleNamespace(system_prompt=None)  # type: ignore[assignment]
+
+    answer = pipe.ask("q")
+    assert answer.text == "A plain answer [1]."

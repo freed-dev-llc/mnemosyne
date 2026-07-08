@@ -213,6 +213,18 @@ class RagPipeline:
             self.pack.system_prompt or DEFAULT_SYSTEM_PROMPT, context, question, chat_history
         )
         response = self.llm.invoke(messages)
-        text = response.content if hasattr(response, "content") else str(response)
+        content = response.content if hasattr(response, "content") else response
+        if isinstance(content, list):
+            # langchain-core 1.x returns content-block lists; join the text parts into a plain
+            # string instead of printing a Python repr of the list.
+            parts: list[str] = []
+            for part in content:
+                if isinstance(part, str):
+                    parts.append(part)
+                elif isinstance(part, dict):
+                    parts.append(str(part.get("text", "")))
+            text = "".join(parts)
+        else:
+            text = str(content)
         sources = [Source.from_document(i, doc) for i, doc in enumerate(docs, 1)]
-        return RagAnswer(question=question, text=str(text), sources=sources)
+        return RagAnswer(question=question, text=text, sources=sources)
