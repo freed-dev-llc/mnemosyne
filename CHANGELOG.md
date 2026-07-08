@@ -21,6 +21,22 @@ All notable changes to Mnemosyne are documented here. The format is based on
   path.
 - Pack entry-point discovery logs the failure reason, and logs (instead of silently skipping) an
   entry point that does not provide a `KnowledgePack`.
+- URL ingestion fails fast on permanent HTTP 4xx responses (404, 410) instead of retrying three
+  times, decodes pages using the response's declared charset instead of assuming UTF-8, and
+  rejects `retries < 1` with a clear error.
+- `meta.json` is written atomically (temp file plus rename), so a crash or full disk mid-ingest
+  can no longer leave truncated index metadata.
+- The HTTP and MCP servers return the clear "No index for pack" error when `index.faiss` is
+  deleted between requests (a concurrent re-ingest); previously the raw OS error leaked into the
+  409 response.
+- A `manifest.yaml` or `sources.yaml` whose top level is not a YAML mapping raises an error
+  naming the file instead of an `AttributeError` deep in pack loading.
+- Eval question sets reject non-string `expected` values (an unquoted YAML number) and duplicate
+  question ids at load time, naming the offending question.
+- Source and eval tables no longer let rich markup swallow bracketed text in titles, paths,
+  questions, or expected strings.
+- `ask` joins list-form (content-block) model responses into plain text instead of printing a
+  Python repr; the Ollama string path is unchanged.
 
 ### Changed
 
