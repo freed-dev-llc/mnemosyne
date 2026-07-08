@@ -6,6 +6,16 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-08
+
+### Changed
+
+- The release workflow publishes `mnemosyne-rag` to PyPI on a version tag via
+  [trusted publishing](https://docs.pypi.org/trusted-publishers/) (OIDC, no stored token),
+  matching the argus release setup. `pip install "mnemosyne-rag[cpu]"` now installs the
+  package and faiss-cpu from PyPI without the conda env. The one-time PyPI pending-publisher
+  setup and the tag-to-release process are documented in `CONTRIBUTING.md`.
+
 ## [0.6.0] - 2026-07-08
 
 ### Added
