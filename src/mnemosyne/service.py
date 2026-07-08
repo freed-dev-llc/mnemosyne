@@ -35,13 +35,20 @@ def _get_pipeline(pack: KnowledgePack, settings: Settings) -> RagPipeline:
     ``FileNotFoundError`` propagates unchanged on every call (there is nothing to cache).
     Otherwise the check-fingerprint/build-if-stale/store sequence runs under a single lock so
     two concurrent cold-start requests for the same pack can't race and build twice.
+
+    If ``index.faiss`` disappears between the existence check and the fingerprint stat (a
+    concurrent re-ingest), the pipeline is constructed directly, which raises the clean
+    "No index for pack" error instead of leaking a raw ``FileNotFoundError`` from ``stat()``.
     """
     path = index_mod.index_dir(pack.name, settings)
     if not index_mod.index_exists(path):
         return RagPipeline(pack, settings)
 
     with _cache_lock:
-        fingerprint = (path / "index.faiss").stat().st_mtime_ns
+        try:
+            fingerprint = (path / "index.faiss").stat().st_mtime_ns
+        except FileNotFoundError:
+            return RagPipeline(pack, settings)
         cached = _pipeline_cache.get(pack.name)
         if cached is not None and cached[0] == fingerprint:
             return cached[1]

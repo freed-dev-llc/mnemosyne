@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import math
+import os
 from pathlib import Path
 from typing import Any
 
@@ -137,17 +138,24 @@ def load_index(path: Path, embeddings: Embeddings, *, normalize: bool = False) -
 
 
 def write_meta(path: Path, meta: dict[str, Any]) -> None:
-    """Record how the index was built (models, chunking, counts)."""
+    """Record how the index was built (models, chunking, counts).
+
+    The metadata is written to a sibling temp file and then renamed into place with
+    :func:`os.replace`, an atomic operation on the same filesystem, so a crash or full disk
+    mid-write cannot leave a truncated ``meta.json`` behind.
+    """
     path.mkdir(parents=True, exist_ok=True)
-    (path / META_FILE).write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    tmp = path / (META_FILE + ".tmp")
+    tmp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    os.replace(tmp, path / META_FILE)
 
 
 def read_meta(path: Path) -> dict[str, Any] | None:
     """Read the build metadata for an index, or ``None`` if absent or unreadable.
 
-    A truncated or otherwise corrupt ``meta.json`` (e.g. a crash or full disk mid-ingest, since
-    :func:`write_meta` is a non-atomic write) is logged and treated as absent, so callers fall
-    back to their defaults instead of crashing on a ``JSONDecodeError``.
+    A truncated or otherwise corrupt ``meta.json`` (an old install, or a half-written file
+    from some cause outside :func:`write_meta`) is logged and treated as absent, so callers
+    fall back to their defaults instead of crashing on a ``JSONDecodeError``.
     """
     meta_path = path / META_FILE
     if not meta_path.exists():

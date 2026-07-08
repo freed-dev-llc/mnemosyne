@@ -152,6 +152,24 @@ def test_resolve_sources_picks_up_every_supported_suffix(tmp_path: Path) -> None
     assert {f.name for f in files} == {f"doc{suffix}" for suffix in SUPPORTED_SUFFIXES}
 
 
+@pytest.mark.parametrize("body", ["- a\n- b\n", "just a string\n"])
+def test_non_mapping_manifest_raises(tmp_path: Path, body: str) -> None:
+    """A manifest.yaml whose top level is not a mapping fails with a clear ValueError."""
+    (tmp_path / "manifest.yaml").write_text(body, encoding="utf-8")
+    with pytest.raises(ValueError, match=r"manifest\.yaml"):
+        KnowledgePack.from_directory(tmp_path)
+
+
+def test_non_mapping_sources_spec_raises(tmp_path: Path) -> None:
+    """A sources.yaml whose top level is a list fails with a clear ValueError on resolve."""
+    sources = tmp_path / "sources"
+    sources.mkdir(parents=True)
+    (sources / "sources.yaml").write_text("- https://example.com\n", encoding="utf-8")
+    pack = KnowledgePack.from_directory(tmp_path)
+    with pytest.raises(ValueError, match=r"sources\.yaml"):
+        pack.resolve_sources()
+
+
 def test_local_only_load_still_folds_in_staged_files(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

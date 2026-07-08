@@ -42,7 +42,13 @@ class KnowledgePack:
         manifest: dict[str, Any] = {}
         manifest_path = directory / "manifest.yaml"
         if manifest_path.exists():
-            manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+            loaded = yaml.safe_load(manifest_path.read_text(encoding="utf-8")) or {}
+            if not isinstance(loaded, dict):
+                raise ValueError(
+                    f"{manifest_path} must be a YAML mapping of manifest fields, "
+                    f"got {type(loaded).__name__}"
+                )
+            manifest = loaded
         return cls(directory, manifest)
 
     # --- manifest-backed properties (None means "fall back to settings") ---
@@ -88,7 +94,12 @@ class KnowledgePack:
     def _sources_spec(self) -> dict[str, Any]:
         spec_path = self.directory / "sources" / "sources.yaml"
         if spec_path.exists():
-            return yaml.safe_load(spec_path.read_text(encoding="utf-8")) or {}
+            spec = yaml.safe_load(spec_path.read_text(encoding="utf-8")) or {}
+            if not isinstance(spec, dict):
+                raise ValueError(
+                    f"{spec_path} must be a YAML mapping (local:/urls:), got {type(spec).__name__}"
+                )
+            return spec
         return {}
 
     def resolve_sources(

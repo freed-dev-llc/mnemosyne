@@ -390,6 +390,25 @@ def test_eval_command_without_gate_always_exits_zero(monkeypatch: pytest.MonkeyP
     assert result.exit_code == 0
 
 
+def test_eval_command_keeps_bracketed_question_text(monkeypatch: pytest.MonkeyPatch) -> None:
+    # A question containing rich-markup brackets must survive to the eval table unescaped-away.
+    report = EvalReport(
+        pack="demo",
+        k=5,
+        total=1,
+        hits=1,
+        hit_rate=1.0,
+        results=[EvalResult(id="q1", question="what is [3]?", hit=True, missing=[])],
+    )
+    monkeypatch.setattr(
+        "mnemosyne.cli.run_retrieval_eval",
+        lambda pack, k=None, include_fetched=False: report,
+    )
+    result = runner.invoke(app, ["eval", "demo"])
+    assert result.exit_code == 0
+    assert "[3]" in result.output
+
+
 def test_eval_command_gate_passes_at_or_above_floor(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
         "mnemosyne.cli.run_retrieval_eval",
@@ -1055,6 +1074,56 @@ def test_load_questions_rejects_explicit_curated(
     )
     with pytest.raises(ValueError, match="invalid corpus"):
         load_questions("demo", include_fetched=True)
+
+
+def test_load_questions_rejects_non_string_expected(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # An unquoted YAML number loads as an int and would crash scoring at .lower().
+    text = "questions:\n  - id: q-num\n    question: how many?\n    expected:\n      - 42\n"
+    _pack_with_questions(monkeypatch, tmp_path, text)
+    with pytest.raises(ValueError, match="q-num"):
+        load_questions("demo")
+
+
+def test_load_questions_rejects_non_string_in_or_group(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # A non-string alternative inside an OR-group is rejected the same way.
+    text = (
+        "questions:\n  - id: q-or\n    question: which?\n    expected:\n      - - ok\n        - 7\n"
+    )
+    _pack_with_questions(monkeypatch, tmp_path, text)
+    with pytest.raises(ValueError, match="q-or"):
+        load_questions("demo")
+
+
+def test_load_questions_rejects_duplicate_ids(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    text = (
+        "questions:\n"
+        "  - id: dup\n    question: first?\n    expected:\n      - alpha\n"
+        "  - id: dup\n    question: second?\n    expected:\n      - beta\n"
+    )
+    _pack_with_questions(monkeypatch, tmp_path, text)
+    with pytest.raises(ValueError, match="dup"):
+        load_questions("demo")
+
+
+def test_load_questions_rejects_duplicate_ids_before_fetched_filter(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Validation runs before the corpus filter: a duplicate whose second copy is fetched
+    # still fails the default (excluding) load.
+    text = (
+        "questions:\n"
+        "  - id: dup\n    question: first?\n    expected:\n      - alpha\n"
+        "  - id: dup\n    question: second?\n    expected:\n      - beta\n    corpus: fetched\n"
+    )
+    _pack_with_questions(monkeypatch, tmp_path, text)
+    with pytest.raises(ValueError, match="dup"):
+        load_questions("demo", include_fetched=False)
 
 
 def test_shipped_default_population_is_unchanged_by_adr_0020() -> None:
