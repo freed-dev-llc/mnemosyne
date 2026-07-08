@@ -6,6 +6,8 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-08
+
 ### Added
 
 - Third knowledge pack, `opnsense`
