@@ -184,7 +184,9 @@ class RagPipeline:
         an off-topic query (nothing close enough) returns an empty list. Without it, the
         historical behavior stands: always return the top-k, however far.
         """
-        k = k or self.top_k
+        k = self.top_k if k is None else k
+        if k < 1:
+            raise ValueError(f"k must be a positive integer, got {k}")
         if self.score_floor is None:
             return self.store.similarity_search(question, k=k)
         scored = self.store.similarity_search_with_score(question, k=k)

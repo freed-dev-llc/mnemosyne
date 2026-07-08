@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
 from langchain_core.documents import Document
 
 from mnemosyne.pipeline import RagAnswer, RagPipeline, Source
@@ -80,6 +81,21 @@ def test_retrieve_with_floor_returns_empty_when_nothing_close() -> None:
     """An off-topic query (every chunk past the floor) retrieves nothing."""
     store = _FakeStore([(d, 1.3) for d in _docs(2)])
     assert _pipeline(store, score_floor=1.0).retrieve("q") == []
+
+
+@pytest.mark.parametrize("bad_k", [0, -3])
+def test_retrieve_rejects_non_positive_k(bad_k: int) -> None:
+    """``k < 1`` is a caller error (rejected), not a silent fallback to the default top-k."""
+    store = _FakeStore([(d, 0.1) for d in _docs(3)])
+    with pytest.raises(ValueError, match="k must be a positive integer"):
+        _pipeline(store, score_floor=None).retrieve("q", k=bad_k)
+
+
+def test_retrieve_none_k_uses_top_k() -> None:
+    """``k=None`` still resolves to the configured top-k (unchanged default behavior)."""
+    docs = _docs(4)
+    store = _FakeStore([(d, 0.1) for d in docs])
+    assert _pipeline(store, score_floor=None, top_k=2).retrieve("q") == docs[:2]
 
 
 def test_ask_short_circuits_without_llm_on_empty_retrieval() -> None:
