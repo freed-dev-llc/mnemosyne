@@ -6,6 +6,13 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+### Changed
+
+- The PyPI project description is now a concise, package-focused `README-pypi.md` (install,
+  quickstart, serve, doc links) instead of a mirror of the full 269-line `README.md`, whose
+  relative image and doc links rendered broken off-repo. `README.md` is unchanged, so the
+  GitHub landing page is unaffected. Takes effect on the next PyPI upload.
+
 ## [0.6.2] - 2026-07-08
 
 ### Fixed
