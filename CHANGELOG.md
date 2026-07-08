@@ -6,6 +6,17 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-08
+
+### Fixed
+
+- `mnemosyne version` and the HTTP `/health` endpoint report the real installed version
+  again. `__version__` was a hardcoded string in `src/mnemosyne/__init__.py` that the 0.6.0
+  and 0.6.1 release bumps missed, so those wheels installed as 0.6.x (correct dist metadata)
+  but reported `0.5.0` at runtime. `__version__` now derives from installed package metadata
+  (`importlib.metadata`), making `pyproject.toml` the single source of truth, and a test
+  asserts the two stay in sync so the drift cannot recur.
+
 ## [0.6.1] - 2026-07-08
 
 ### Changed
