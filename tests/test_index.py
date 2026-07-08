@@ -42,6 +42,20 @@ def test_meta_round_trips(tmp_path: Path) -> None:
     assert read_meta(path) == meta
 
 
+def test_write_meta_leaves_no_temp_file(tmp_path: Path) -> None:
+    path = tmp_path / "ubiquiti"
+    write_meta(path, {"pack": "ubiquiti"})
+    assert [p.name for p in path.iterdir()] == [META_FILE]
+
+
+def test_write_meta_replaces_existing(tmp_path: Path) -> None:
+    path = tmp_path / "ubiquiti"
+    write_meta(path, {"chunks": 1})
+    write_meta(path, {"chunks": 2})
+    assert read_meta(path) == {"chunks": 2}
+    assert [p.name for p in path.iterdir()] == [META_FILE]
+
+
 def test_read_meta_missing_returns_none(tmp_path: Path) -> None:
     assert read_meta(tmp_path / "nope") is None
 
