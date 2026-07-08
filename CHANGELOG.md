@@ -6,6 +6,22 @@ All notable changes to Mnemosyne are documented here. The format is based on
 
 ## [Unreleased]
 
+### Fixed
+
+- `mnemosyne ask` and `mnemosyne chat` no longer drop inline `[n]` citation markers (or any
+  bracketed text) from answers; rich console markup interpreted them as style tags.
+- A corrupt `meta.json` under `knowledge/<pack>/` no longer crashes `mnemosyne packs`, `ask`, or
+  the HTTP `/packs` endpoint; unreadable metadata is logged and treated as absent.
+- `mnemosyne ingest` reports a clean one-line error instead of a traceback when a `sources.yaml`
+  `local:` entry points at a missing file.
+- Retrieval rejects `k < 1` with a clear error (HTTP 400 on `/ask` and `/search`); previously
+  `k=0` silently used the default and negative values surfaced as a FAISS error.
+- The per-chunk embedding fallback (issue #40) embeds documents via `embed_documents`, not
+  `embed_query`, so asymmetric embedding backends index document-space vectors on the fallback
+  path.
+- Pack entry-point discovery logs the failure reason, and logs (instead of silently skipping) an
+  entry point that does not provide a `KnowledgePack`.
+
 ### Changed
 
 - The PyPI project description is now a concise, package-focused `README-pypi.md` (install,
