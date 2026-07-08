@@ -11,6 +11,7 @@ Markdown / text / HTML are handled with the standard library. PDF support is opt
 from __future__ import annotations
 
 import time
+import urllib.error
 import urllib.request
 from html.parser import HTMLParser
 from pathlib import Path
@@ -125,26 +126,48 @@ _BROWSER_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+# 4xx codes worth retrying: doc sites behind a CDN sometimes return a transient 403 under
+# throttling, 408 is an explicit request timeout, and 429 is rate limiting. Every other 4xx
+# is a permanent client error (404, 410, ...) where retrying only wastes time.
+_RETRYABLE_4XX = {403, 408, 429}
+
 
 def load_url(url: str, *, timeout: int = 30, retries: int = 3) -> Document:
     """Fetch an http(s) URL and return its text content as a :class:`Document`.
 
-    Retries a few times with linear backoff — doc sites behind a CDN sometimes return a
-    transient 403/5xx under throttling.
+    Retries a few times with linear backoff. Permanent HTTP 4xx responses (404, 410, ...)
+    fail fast on the first attempt; transient throttling/timeout codes (403, 408, 429) and
+    5xx or network errors are retried. The page is decoded using the charset declared in the
+    response headers, falling back to UTF-8.
     """
     if not url.lower().startswith(("http://", "https://")):
         raise ValueError(f"Only http(s) URLs are supported, got: {url!r}")
+    if retries < 1:
+        raise ValueError(f"retries must be >= 1, got {retries}")
     req = urllib.request.Request(url, headers=dict(_BROWSER_HEADERS))  # noqa: S310 - scheme checked above
     last_exc: Exception | None = None
     for attempt in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - scheme checked above
-                raw = resp.read().decode("utf-8", errors="ignore")
+                charset = resp.headers.get_content_charset() or "utf-8"
+                data = resp.read()
+            try:
+                raw = data.decode(charset, errors="ignore")
+            except LookupError:  # bogus charset label in the response header
+                raw = data.decode("utf-8", errors="ignore")
             text, title = _html_to_text(raw)
             return Document(
                 page_content=text or raw,
                 metadata={"source": url, "title": title or url},
             )
+        except urllib.error.HTTPError as exc:
+            # Permanent client errors (4xx that is not throttling/timeout) will never
+            # succeed on retry, so fail fast instead of sleeping through the loop.
+            if exc.code < 500 and exc.code not in _RETRYABLE_4XX:
+                raise
+            last_exc = exc
+            if attempt < retries - 1:
+                time.sleep(1.0 * (attempt + 1))
         except Exception as exc:  # transient fetch failure — back off and retry
             last_exc = exc
             if attempt < retries - 1:
