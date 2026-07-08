@@ -144,6 +144,32 @@ def test_independent_packs_get_independent_cache_entries(
     assert set(_CountingRagPipeline.instances) == {"pack1", "pack2"}
 
 
+def test_index_deleted_between_check_and_stat_raises_clean_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A concurrent re-ingest deleting index.faiss after the existence check must surface the
+    clean "No index for pack" error, not a raw FileNotFoundError from stat()."""
+    path = _build_index_dir(tmp_path, "pack1")
+    _wire(monkeypatch, tmp_path)
+
+    real_index_exists = service.index_mod.index_exists
+
+    def racing_index_exists(p: Path) -> bool:
+        result = real_index_exists(p)
+        if result:
+            (path / "index.faiss").unlink()  # the race: gone before stat()
+        return result
+
+    monkeypatch.setattr(service.index_mod, "index_exists", racing_index_exists)
+
+    with pytest.raises(FileNotFoundError, match="No index for pack"):
+        service.ask("pack1", "q")
+
+    assert _CountingRagPipeline.construct_calls == 1
+    assert _CountingRagPipeline.instances == []
+    assert "pack1" not in service._pipeline_cache
+
+
 def test_unbuilt_pack_never_caches_and_raises_every_call(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
