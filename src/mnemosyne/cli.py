@@ -12,6 +12,7 @@ from typing import NoReturn
 
 import typer
 from rich.console import Console
+from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
@@ -83,7 +84,7 @@ def ingest_cmd(
                 embedding_model=embedding_model,
                 local_only=local_only,
             )
-    except (KeyError, ValueError) as exc:
+    except (KeyError, FileNotFoundError, ValueError) as exc:
         _die(exc)
     console.print(
         Panel.fit(
@@ -110,7 +111,9 @@ def ask_cmd(
         answer = pipe.ask(" ".join(question))
     except (KeyError, FileNotFoundError, ValueError) as exc:
         _die(exc)
-    console.print(answer.text)
+    # markup/highlight off so rich never eats inline `[n]` citation markers (or any bracketed
+    # text like `[Errno 2]`) from the answer, the same guard the sweep table already uses.
+    console.print(answer.text, markup=False, highlight=False)
     if show_sources:
         _print_sources(answer.sources)
 
@@ -143,7 +146,9 @@ def chat_cmd(
             continue
         answer = pipe.ask(question, chat_history=chat_history)
         chat_history += f"\nUser: {question}\n\nAssistant: {answer.text}\n"
-        console.print(f"[bold magenta]{pack} >[/] {answer.text}")
+        # Escape the answer so its inline `[n]` citations survive rich markup while the styled
+        # prefix is still rendered (see the ask command for the same citation guard).
+        console.print(f"[bold magenta]{pack} >[/] {escape(answer.text)}")
         if show_sources:
             _print_sources(answer.sources)
 

@@ -76,7 +76,7 @@ def _embed_chunks(
     skipped = 0
     for chunk in chunks:
         try:
-            vector = embeddings.embed_query(chunk.page_content)
+            vector = embeddings.embed_documents([chunk.page_content])[0]
         except Exception as exc:
             skipped += 1
             _log.warning("Skipping chunk (embedding failed: %s): %s", exc, _describe_chunk(chunk))
@@ -143,8 +143,17 @@ def write_meta(path: Path, meta: dict[str, Any]) -> None:
 
 
 def read_meta(path: Path) -> dict[str, Any] | None:
-    """Read the build metadata for an index, or ``None`` if absent."""
+    """Read the build metadata for an index, or ``None`` if absent or unreadable.
+
+    A truncated or otherwise corrupt ``meta.json`` (e.g. a crash or full disk mid-ingest, since
+    :func:`write_meta` is a non-atomic write) is logged and treated as absent, so callers fall
+    back to their defaults instead of crashing on a ``JSONDecodeError``.
+    """
     meta_path = path / META_FILE
     if not meta_path.exists():
         return None
-    return json.loads(meta_path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(meta_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        _log.warning("Ignoring unreadable index metadata at %s: %s", meta_path, exc)
+        return None

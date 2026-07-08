@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pytest
 from typer.testing import CliRunner
 
 from mnemosyne import __version__
 from mnemosyne.cli import app
+from mnemosyne.pipeline import RagAnswer
 
 runner = CliRunner()
 
@@ -62,3 +66,48 @@ def test_sweep_unknown_pack_dies() -> None:
     result = runner.invoke(app, ["sweep", "does-not-exist"])
     assert result.exit_code == 1
     assert "does-not-exist" in result.output
+
+
+class _CitingPipeline:
+    """A fake RagPipeline whose answer contains an inline ``[1]`` citation marker."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def ask(self, question: str, chat_history: str = "") -> RagAnswer:
+        return RagAnswer(question=question, text="Enable tagging on the port [1].", sources=[])
+
+
+def test_ask_preserves_citation_markers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Inline ``[n]`` citations must survive to the terminal (rich must not eat them)."""
+    monkeypatch.setattr("mnemosyne.cli.get_pack", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr("mnemosyne.cli.RagPipeline", _CitingPipeline)
+
+    result = runner.invoke(app, ["ask", "fake", "hi"])
+    assert result.exit_code == 0
+    assert "[1]" in result.output
+
+
+def test_chat_preserves_citation_markers(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The chat loop keeps its styled prefix but must not drop ``[n]`` citations either."""
+    monkeypatch.setattr("mnemosyne.cli.get_pack", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr("mnemosyne.cli.RagPipeline", _CitingPipeline)
+
+    result = runner.invoke(app, ["chat", "fake"], input="hi\nexit\n")
+    assert result.exit_code == 0
+    assert "[1]" in result.output
+
+
+def test_ingest_missing_local_file_reports_clean_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A missing ``local:`` source file yields a one-line error, not a raw traceback."""
+    monkeypatch.setattr("mnemosyne.cli.get_pack", lambda name: SimpleNamespace(name=name))
+
+    def _raise(*args: object, **kwargs: object) -> None:
+        raise FileNotFoundError("/no/such/file.md")
+
+    monkeypatch.setattr("mnemosyne.cli.ingest", _raise)
+
+    result = runner.invoke(app, ["ingest", "fake"])
+    assert result.exit_code == 1
+    assert "/no/such/file.md" in result.output
+    assert "Traceback" not in result.output
