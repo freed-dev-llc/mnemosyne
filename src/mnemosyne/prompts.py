@@ -8,6 +8,8 @@ Two properties keep RAG honest and live here, not in the model:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from langchain_core.documents import Document
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
@@ -28,6 +30,37 @@ def format_context(docs: list[Document]) -> str:
         label = f"{title}, p.{page}" if page else title
         parts.append(f"[{i}] (source: {label})\n{doc.page_content}")
     return "\n\n".join(parts)
+
+
+def render_history(turns: Sequence[tuple[str, str]], budget: int | None) -> tuple[str, bool]:
+    """Render recent ``(question, answer)`` turns into a budgeted transcript.
+
+    Each turn renders as ``f"User: {q}\\n\\nAssistant: {a}"``, the same shape
+    ``build_messages`` receives after it strips the history. Turns are walked newest to
+    oldest, accumulating rendered length plus the ``"\\n\\n"`` joiner between turns; once
+    the next turn would push the total past ``budget`` characters, older turns are dropped.
+    The most recent turn is always kept even if it alone exceeds the budget, so the
+    immediately-previous-turn reference the model needs survives.
+
+    Returns the kept turns joined in chronological order and ``True`` if any turn was
+    dropped. ``budget=None`` keeps everything (and never reports truncation); empty
+    ``turns`` returns ``("", False)``.
+    """
+    rendered = [f"User: {q}\n\nAssistant: {a}" for q, a in turns]
+    if budget is None:
+        return "\n\n".join(rendered), False
+    kept: list[str] = []
+    total = 0
+    for block in reversed(rendered):
+        # +2 for the "\n\n" joiner, but only once a block is already kept.
+        addition = len(block) + (2 if kept else 0)
+        if kept and total + addition > budget:
+            break
+        kept.append(block)
+        total += addition
+    kept.reverse()
+    truncated = len(kept) < len(rendered)
+    return "\n\n".join(kept), truncated
 
 
 def build_messages(

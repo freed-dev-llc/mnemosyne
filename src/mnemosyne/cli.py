@@ -34,6 +34,7 @@ from .eval import (
 )
 from .packs.registry import get_pack
 from .pipeline import RagPipeline, Source, ingest
+from .prompts import render_history
 
 app = typer.Typer(
     add_completion=False,
@@ -131,9 +132,12 @@ def chat_cmd(
     except (KeyError, FileNotFoundError, ValueError) as exc:
         _die(exc)
     console.print(f"[dim]Chatting with [bold]{pack}[/]. Type 'exit' or Ctrl-D to quit.[/]")
-    # RAG has no automatic memory — we thread a running transcript ourselves so the model
-    # remembers earlier turns (the chat-history best practice from rag_ollama).
-    chat_history = ""
+    # RAG has no automatic memory, so we thread a running transcript ourselves for the model to
+    # remember earlier turns. The transcript is bounded to a character budget: once it overflows,
+    # the oldest whole turns stop being sent (see MNEMOSYNE_CHAT_HISTORY_BUDGET).
+    budget = get_settings().chat_history_budget
+    turns: list[tuple[str, str]] = []
+    truncation_noticed = False
     while True:
         try:
             question = console.input("[bold cyan]you >[/] ").strip()
@@ -144,8 +148,15 @@ def chat_cmd(
             break
         if not question:
             continue
-        answer = pipe.ask(question, chat_history=chat_history)
-        chat_history += f"\nUser: {question}\n\nAssistant: {answer.text}\n"
+        history, truncated = render_history(turns, budget)
+        if truncated and not truncation_noticed:
+            console.print(
+                f"[dim]note: transcript exceeds {budget} chars; oldest turns are no longer "
+                "sent to the model (MNEMOSYNE_CHAT_HISTORY_BUDGET).[/]"
+            )
+            truncation_noticed = True
+        answer = pipe.ask(question, chat_history=history)
+        turns.append((question, answer.text))
         # Escape the answer so its inline `[n]` citations survive rich markup while the styled
         # prefix is still rendered (see the ask command for the same citation guard).
         console.print(f"[bold magenta]{pack} >[/] {escape(answer.text)}")

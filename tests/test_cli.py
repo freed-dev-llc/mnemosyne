@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import ClassVar
 
 import pytest
 from typer.testing import CliRunner
 
 from mnemosyne import __version__
 from mnemosyne.cli import app
+from mnemosyne.config import Settings
 from mnemosyne.pipeline import RagAnswer, Source
 
 runner = CliRunner()
@@ -120,6 +122,57 @@ def test_chat_preserves_citation_markers(monkeypatch: pytest.MonkeyPatch) -> Non
     result = runner.invoke(app, ["chat", "fake"], input="hi\nexit\n")
     assert result.exit_code == 0
     assert "[1]" in result.output
+
+
+class _RecordingPipeline:
+    """A fake RagPipeline that records the ``chat_history`` it is handed each turn."""
+
+    histories: ClassVar[list[str]] = []
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        pass
+
+    def ask(self, question: str, chat_history: str = "") -> RagAnswer:
+        _RecordingPipeline.histories.append(chat_history)
+        return RagAnswer(question=question, text=f"answer to {question}", sources=[])
+
+
+def _use_recording_pipeline(monkeypatch: pytest.MonkeyPatch, budget: int) -> list[str]:
+    """Wire the chat command to a fresh recording pipeline and a fixed history budget."""
+    _RecordingPipeline.histories = []
+    monkeypatch.setattr("mnemosyne.cli.get_pack", lambda name: SimpleNamespace(name=name))
+    monkeypatch.setattr("mnemosyne.cli.RagPipeline", _RecordingPipeline)
+    # _env_file=None mirrors test_config so a developer's local .env cannot flip the budget.
+    monkeypatch.setattr(
+        "mnemosyne.cli.get_settings",
+        lambda: Settings(_env_file=None, chat_history_budget=budget),
+    )
+    return _RecordingPipeline.histories
+
+
+def test_chat_drops_oldest_turn_over_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """With a tiny budget, the newest turn's history keeps the prior turn but drops the oldest."""
+    histories = _use_recording_pipeline(monkeypatch, budget=40)
+
+    result = runner.invoke(app, ["chat", "fake"], input="q1\nq2\nq3\nexit\n")
+    assert result.exit_code == 0
+    # Turn 3 is asked with the history rendered from turns 1 and 2; the budget keeps only turn 2.
+    third_turn_history = histories[2]
+    assert "q2" in third_turn_history
+    assert "q1" not in third_turn_history
+    # The one-time truncation notice fires exactly once across the session.
+    assert result.output.count("oldest turns are no longer sent") == 1
+
+
+def test_chat_default_budget_threads_full_history(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Under the default budget a short session threads every prior turn and shows no notice."""
+    histories = _use_recording_pipeline(monkeypatch, budget=8000)
+
+    result = runner.invoke(app, ["chat", "fake"], input="q1\nq2\nq3\nexit\n")
+    assert result.exit_code == 0
+    third_turn_history = histories[2]
+    assert "q1" in third_turn_history and "q2" in third_turn_history
+    assert "oldest turns are no longer sent" not in result.output
 
 
 def test_ingest_missing_local_file_reports_clean_error(monkeypatch: pytest.MonkeyPatch) -> None:
