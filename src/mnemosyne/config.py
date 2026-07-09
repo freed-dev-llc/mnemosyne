@@ -88,11 +88,13 @@ class Settings(BaseSettings):
     # cannot grow the prompt without bound. The most recent turn is always kept even if it alone
     # exceeds the budget: the model just produced that answer, so it fits the window, and keeping
     # it preserves the immediately-previous-turn reference that chat history exists for. 8000
-    # chars is roughly 2000 tokens at about 4 chars/token; Ollama's default window is 4096 tokens
-    # and ``llm.py`` does not set ``num_ctx``, so this leaves roughly half the window for the
-    # retrieved chunks, system prompt, question, and generation at the default k=5 x
-    # chunk_size=500. Set MNEMOSYNE_CHAT_HISTORY_BUDGET=none (synonyms: null, empty string) to
-    # disable the bound and thread the full transcript (the pre-fix behavior).
+    # chars measured 2213 tokens (3.6 chars/token) for the default qwen2.5:1.5b, counted via
+    # Ollama ``prompt_eval_count`` over README-prose transcripts on 2026-07-09. That is a bit
+    # over half of Ollama's default 4096-token context window (per the Ollama FAQ; ``llm.py``
+    # does not set ``num_ctx``); the default retrieval payload (k=5 x chunk_size=500 = 2500
+    # chars) measured 761 tokens, leaving roughly 1000 tokens for the system prompt, question,
+    # and generation in the worst case. Set MNEMOSYNE_CHAT_HISTORY_BUDGET=none (synonyms: null,
+    # empty string) to disable the bound and thread the full transcript (the pre-fix behavior).
     chat_history_budget: int | None = Field(default=8000, gt=0)
 
     @field_validator("score_floor", "chat_history_budget", mode="before")
