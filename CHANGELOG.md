@@ -4,6 +4,21 @@ All notable changes to Mnemosyne are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-07-09
+
+### Fixed
+
+- `mnemosyne chat` bounds the transcript sent with each turn to a character budget instead of
+  growing it without limit across a session. Oldest turns are dropped whole once the budget is
+  exceeded, the most recent turn is always kept, and a one-time notice reports when truncation
+  starts. The budget is configurable via `MNEMOSYNE_CHAT_HISTORY_BUDGET` (default 8000
+  characters; set to `none` to restore the unbounded behavior). (#34)
+
+### Changed
+
+- GitHub release assets now carry Sigstore build provenance, verifiable with
+  `gh attestation verify`, and the PyPI publish action is pinned to a commit SHA. (#33)
+
 ## [0.6.3] - 2026-07-08
 
 ### Fixed
