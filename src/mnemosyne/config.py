@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -82,16 +82,29 @@ class Settings(BaseSettings):
     # restore the always-return-top-k behavior.
     score_floor: float | None = 1.0
 
-    @field_validator("score_floor", mode="before")
-    @classmethod
-    def _score_floor_none_words(cls, value: object) -> object:
-        """Map the documented disable spellings to ``None`` before float parsing.
+    # Chat transcript budget, in characters of the rendered ``chat`` transcript (the format
+    # ``build_messages`` receives). The interactive ``chat`` loop keeps the most recent turns
+    # that fit within this many characters and drops older whole turns first, so a long session
+    # cannot grow the prompt without bound. The most recent turn is always kept even if it alone
+    # exceeds the budget: the model just produced that answer, so it fits the window, and keeping
+    # it preserves the immediately-previous-turn reference that chat history exists for. 8000
+    # chars is roughly 2000 tokens at about 4 chars/token; Ollama's default window is 4096 tokens
+    # and ``llm.py`` does not set ``num_ctx``, so this leaves roughly half the window for the
+    # retrieved chunks, system prompt, question, and generation at the default k=5 x
+    # chunk_size=500. Set MNEMOSYNE_CHAT_HISTORY_BUDGET=none (synonyms: null, empty string) to
+    # disable the bound and thread the full transcript (the pre-fix behavior).
+    chat_history_budget: int | None = Field(default=8000, gt=0)
 
-        Env vars are always strings, and pydantic's float parser rejects "none"/"null"
-        (``float_parsing``), so without this hook the disable promised above was
-        unreachable through the environment. Only the three none-words match; any other
-        value passes through unchanged, so numeric strings still parse as floats and
-        garbage still raises ``ValidationError``.
+    @field_validator("score_floor", "chat_history_budget", mode="before")
+    @classmethod
+    def _none_words_to_none(cls, value: object) -> object:
+        """Map the documented disable spellings to ``None`` before numeric parsing.
+
+        Env vars are always strings, and pydantic's numeric parsers reject "none"/"null"
+        (``float_parsing`` / ``int_parsing``), so without this hook the disable promised on
+        ``score_floor`` and ``chat_history_budget`` was unreachable through the environment.
+        Only the three none-words match; any other value passes through unchanged, so numeric
+        strings still parse and garbage still raises ``ValidationError``.
         """
         if isinstance(value, str) and value.strip().lower() in {"", "none", "null"}:
             return None

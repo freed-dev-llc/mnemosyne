@@ -145,7 +145,7 @@ mnemosyne ingest ubiquiti
 # 3. Ask the expert
 mnemosyne ask ubiquiti "How do I adopt a UniFi switch to a remote controller?"
 
-# Or explore interactively (with chat history)
+# Or explore interactively (chat history is kept within a character budget; see .env.example)
 mnemosyne chat ubiquiti
 ```
 

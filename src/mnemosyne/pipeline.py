@@ -196,7 +196,7 @@ class RagPipeline:
         """Retrieve relevant context and generate a grounded, cited answer.
 
         ``chat_history`` is an optional running transcript for multi-turn sessions; the
-        ``chat`` CLI accumulates and threads it. Single ``ask`` calls leave it empty.
+        ``chat`` CLI accumulates and threads a bounded one. Single ``ask`` calls leave it empty.
         """
         docs = self.retrieve(question, k)
         if not docs:
