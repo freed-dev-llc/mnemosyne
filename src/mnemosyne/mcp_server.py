@@ -1,4 +1,4 @@
-"""FastMCP server exposing Mnemosyne retrieval to coding agents over stdio.
+"""MCP server exposing Mnemosyne retrieval to coding agents over stdio.
 
 Lets any MCP client (e.g. Argus's coding agents) ground decisions in Mnemosyne's
 knowledge packs via three tools: ``list_packs`` / ``ask`` / ``search``. It is the evidence
@@ -11,11 +11,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from . import service
 
-mcp = FastMCP("mnemosyne")
+mcp = MCPServer("mnemosyne")
 
 
 def _error(exc: Exception) -> dict[str, Any]:
