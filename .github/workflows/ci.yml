@@ -11,7 +11,7 @@ on:
 # conda-forge, exactly as in local/dev.
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         shell: bash -el {0}
@@ -55,7 +55,7 @@ jobs:
   # check — branch protection requires only `build`, which stays fast, offline, and untouched. It
   # pulls bge-m3 ONLY: the gate scores retrieval, not generation, so it never pulls qwen2.5:1.5b.
   eval-gate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     defaults:
       run:
         shell: bash -el {0}
@@ -125,7 +125,7 @@ jobs:
   # reds the run; it is reported via a step summary + a `::error::` annotation instead. It
   # runs in parallel (no `needs:`) and is never made a required check.
   dummy-pack-install:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
