@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   build-and-release:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, X64]
     # On a tag push, github.ref_name is the tag; on workflow_dispatch it is a branch, so fall
     # back to the `tag` input. Used for both the checkout ref and the release's tag_name.
     env:
